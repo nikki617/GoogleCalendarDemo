@@ -1,9 +1,10 @@
 import streamlit as st
+import json
 from google.oauth2 import service_account
 from gcsa.google_calendar import GoogleCalendar
 
-# Load the credentials from Streamlit secrets
-credentials_info = st.secrets["CalendarAPI"]
+# Load and parse the credentials from Streamlit secrets
+credentials_info = json.loads(st.secrets["CalendarAPI"])
 
 # Use the credentials for service account authentication
 credentials = service_account.Credentials.from_service_account_info(credentials_info)
