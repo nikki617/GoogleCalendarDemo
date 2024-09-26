@@ -1,13 +1,17 @@
 import streamlit as st
+from google.oauth2 import service_account
 from gcsa.google_calendar import GoogleCalendar
 
-# Retrieve Google Calendar secret from Streamlit's secrets
-GoogleCalendarSecret = st.secrets["CalendarAPI"]
+# Load the credentials from Streamlit secrets
+credentials_info = st.secrets["CalendarAPI"]
 
-# Initialize Google Calendar using your email
-calendar = GoogleCalendar('nikki617@bu.edu')
+# Use the credentials for service account authentication
+credentials = service_account.Credentials.from_service_account_info(credentials_info)
 
-# Loop through the events in the calendar and display them
+# Initialize GoogleCalendar with the credentials
+calendar = GoogleCalendar(credentials=credentials)
+
+# Retrieve and display existing events from the Google Calendar
 st.write("Retrieving events from your Google Calendar...")
 
 # Iterate over events and display each one in the Streamlit app
