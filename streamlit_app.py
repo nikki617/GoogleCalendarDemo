@@ -45,19 +45,23 @@ if st.button("Send"):
     if user_input:
         response = process_user_input(user_input)  # Process user input through OpenAI
         
-        # Check availability if the user asks for it
-        if "show all events" in user_input.lower():
+        # Check if the user is asking to show all events
+        if "show me all events" in user_input.lower() or "list my events" in user_input.lower() or "can you show me all the events" in user_input.lower():
             start_date = datetime.datetime.now().isoformat() + 'Z'  # Current time
             end_date = (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() + 'Z'  # End next week
-            events = check_availability(calendar_service, start_date, end_date)
-            if events:
-                event_list = [
-                    f"{event['summary']} from {event['start'].get('dateTime', event['start'].get('date'))} to {event['end'].get('dateTime', event['end'].get('date'))}" 
-                    for event in events
-                ]
-                response += "\nYou have the following events scheduled:\n" + "\n".join(event_list)
-            else:
-                response += "\nYou're free for the next week!"
+            
+            try:
+                events = check_availability(calendar_service, start_date, end_date)
+                if events:
+                    event_list = [
+                        f"{event['summary']} from {event['start'].get('dateTime', event['start'].get('date'))} to {event['end'].get('dateTime', event['end'].get('date'))}" 
+                        for event in events
+                    ]
+                    response += "\nYou have the following events scheduled:\n" + "\n".join(event_list)
+                else:
+                    response += "\nYou're free for the next week!"
+            except Exception as e:
+                response += f"\nAn error occurred while fetching your events: {e}"
         
         st.write("Chatbot:", response)
     else:
