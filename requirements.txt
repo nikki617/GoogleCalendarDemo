@@ -1,6 +1,6 @@
 streamlit
 pandas
-gcsa==0.9.0
+gcsa
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
