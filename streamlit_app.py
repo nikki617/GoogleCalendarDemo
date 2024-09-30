@@ -3,7 +3,7 @@ import json
 from google.oauth2 import service_account
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Load the credentials from Streamlit secrets
 credentials = service_account.Credentials.from_service_account_info(
@@ -23,8 +23,8 @@ calendar_id = "nikki617@bu.edu"  # Replace with your calendar ID
 st.write("Events from your Google Calendar:")
 
 try:
-    # Fetch events for the next 7 days
-    events = list(calendar.get_events(time_min=datetime.now(), time_max=datetime.now() + timedelta(days=7)))
+    # Fetch all events
+    events = list(calendar.get_events())  # Get all events without date restriction
 
     # Iterate through and display events
     if events:
@@ -34,6 +34,6 @@ try:
             st.write(f"**End:** {event.end.isoformat()}")
             st.write("---")
     else:
-        st.write("No events found for the next 7 days.")
+        st.write("No events found.")
 except Exception as e:
     st.error(f"An error occurred: {e}")
