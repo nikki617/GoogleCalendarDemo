@@ -3,8 +3,7 @@ import json
 from google.oauth2 import service_account
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
-from gcsa.recurrence import Recurrence, DAILY, SU, SA
-from datetime import datetime
+from datetime import datetime, timedelta  # Import timedelta
 
 # Deviations from documentation:
 # 1- Creating a service account and creating a key for it.
