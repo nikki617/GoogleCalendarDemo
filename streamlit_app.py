@@ -3,13 +3,7 @@ import json
 from google.oauth2 import service_account
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
-from datetime import datetime, timedelta  # Import timedelta
-
-# Deviations from documentation:
-# 1- Creating a service account and creating a key for it.
-# 2- Adding the service account email to your calendar as a user with event edit permissions.
-# 3- Using service_account.Credentials.from_service_account_info instead of credentials_path for security reasons.
-# 4- Putting the JSON in Streamlit secrets and using json.loads rather than uploading the file to GitHub for security.
+from datetime import datetime, timedelta
 
 # Load the credentials from Streamlit secrets
 credentials = service_account.Credentials.from_service_account_info(
@@ -35,7 +29,10 @@ try:
     # Iterate through and display events
     if events:
         for event in events:
-            st.write(f"Event: {event.summary}, Start: {event.start}, End: {event.end}")
+            st.write(f"**Event:** {event.summary}")
+            st.write(f"**Start:** {event.start.isoformat()}")
+            st.write(f"**End:** {event.end.isoformat()}")
+            st.write("---")
     else:
         st.write("No events found for the next 7 days.")
 except Exception as e:
