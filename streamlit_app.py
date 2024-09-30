@@ -1,16 +1,19 @@
 import streamlit as st
-import datetime
+import json
 from google.oauth2 import service_account
-from calendar_integration import Calendar
+from gcsa.google_calendar import GoogleCalendar
+from calendar_integration import authenticate_google_calendar, check_availability, book_event  # Import from your module
 from llm_integration import process_user_input
+import datetime  # Make sure to import datetime
 
-# Load the credentials directly from Streamlit secrets
-credentials_info = st.secrets["CalendarAPI"]
-calendar_id = 'nikki617@bu.edu'  # Replace with your actual calendar ID
-timezone = 'America/New_York'  # Set your timezone
+# Load the credentials directly from Streamlit secrets without json.loads
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["CalendarAPI"],
+    scopes=["https://www.googleapis.com/auth/calendar"]
+)
 
-# Create the Calendar object
-calendar_service = Calendar(credentials_info, calendar_id, timezone)
+# Create the GoogleCalendar object with the credentials
+calendar_service = authenticate_google_calendar(credentials)
 
 # Streamlit app title
 st.title("Smart Meeting Scheduler with AI Integration")
@@ -24,12 +27,12 @@ if st.button("Send"):
         
         # Check availability if the user asks for it
         if "show all events" in user_input.lower():
-            start_date = datetime.datetime.now()
-            end_date = start_date + datetime.timedelta(days=7)  # Next week
-            events = calendar_service.get_calendar_events(start_date, end_date)
+            start_date = datetime.datetime.now().isoformat() + 'Z'  # Current time
+            end_date = (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() + 'Z'  # End next week
+            events = check_availability(calendar_service, start_date, end_date)
             if events:
                 event_list = [
-                    f"{event['summary']} from {event['start']} to {event['end']}" 
+                    f"{event['summary']} from {event['start'].get('dateTime', event['start'].get('date'))} to {event['end'].get('dateTime', event['end'].get('date'))}" 
                     for event in events
                 ]
                 response += "\nYou have the following events scheduled:\n" + "\n".join(event_list)
