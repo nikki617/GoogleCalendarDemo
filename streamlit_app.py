@@ -4,10 +4,11 @@ from google.oauth2 import service_account
 from gcsa.google_calendar import GoogleCalendar
 from calendar_integration import authenticate_google_calendar, check_availability, book_event  # Import from your module
 from llm_integration import process_user_input
+import datetime  # Make sure to import datetime
 
-# Load the credentials from Streamlit secrets
+# Load the credentials directly from Streamlit secrets without json.loads
 credentials = service_account.Credentials.from_service_account_info(
-    json.loads(st.secrets["CalendarAPI"]),
+    st.secrets["CalendarAPI"],
     scopes=["https://www.googleapis.com/auth/calendar"]
 )
 
