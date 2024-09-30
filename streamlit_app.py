@@ -1,7 +1,8 @@
 import streamlit as st
 import json
 from google.oauth2 import service_account
-from gcsa.google_calendar import GoogleCalendar, Event
+from gcsa.google_calendar import GoogleCalendar
+from gcsa.event import Event  # Import Event from the correct module
 from datetime import datetime, timedelta
 
 # Load and parse the credentials from Streamlit secrets
