@@ -7,7 +7,7 @@ from llm_integration import process_user_input
 
 # Load the credentials from Streamlit secrets
 credentials = service_account.Credentials.from_service_account_info(
-    json.loads(st.secrets["CalendarAPI"]),
+    st.secrets["CalendarAPI"],
     scopes=["https://www.googleapis.com/auth/calendar"]
 )
 
