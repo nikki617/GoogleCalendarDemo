@@ -6,7 +6,7 @@ from llm_integration import process_user_input
 
 # Load the credentials directly from Streamlit secrets
 credentials_info = st.secrets["CalendarAPI"]
-calendar_id = 'your_calendar_id@example.com'  # Replace with your actual calendar ID
+calendar_id = 'nikki617@bu.edu'  # Replace with your actual calendar ID
 timezone = 'America/New_York'  # Set your timezone
 
 # Create the Calendar object
