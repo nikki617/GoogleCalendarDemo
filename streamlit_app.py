@@ -24,7 +24,7 @@ calendar = GoogleCalendar(credentials=credentials)
 st.title("Google Calendar Event Viewer")
 
 # Get and display the list of events from the specified calendar
-calendar_id = "mndhamod@gmail.com"  # Replace with your calendar ID
+calendar_id = "nikki617@bu.edu"  # Replace with your calendar ID
 
 st.write("Events from your Google Calendar:")
 
