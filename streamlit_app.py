@@ -1,70 +1,43 @@
 import streamlit as st
 import json
 from google.oauth2 import service_account
+from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
-from gcsa.event import Event  # Import Event from the correct module
-from datetime import datetime, timedelta
+from gcsa.recurrence import Recurrence, DAILY, SU, SA
+from datetime import datetime
 
-# Load and parse the credentials from Streamlit secrets
-credentials_info = json.loads(st.secrets["CalendarAPI"])
+# Deviations from documentation:
+# 1- Creating a service account and creating a key for it.
+# 2- Adding the service account email to your calendar as a user with event edit permissions.
+# 3- Using service_account.Credentials.from_service_account_info instead of credentials_path for security reasons.
+# 4- Putting the JSON in Streamlit secrets and using json.loads rather than uploading the file to GitHub for security.
 
-# Use the credentials for service account authentication
-credentials = service_account.Credentials.from_service_account_info(credentials_info)
+# Load the credentials from Streamlit secrets
+credentials = service_account.Credentials.from_service_account_info(
+    json.loads(st.secrets["CalendarAPI"]),
+    scopes=["https://www.googleapis.com/auth/calendar"]
+)
 
-# Initialize GoogleCalendar with the credentials
+# Create the GoogleCalendar object with the credentials
 calendar = GoogleCalendar(credentials=credentials)
 
-# Display a title for the Streamlit app
-st.title("Google Calendar Event Manager")
+# Display the title in the Streamlit app
+st.title("Google Calendar Event Viewer")
 
-# Function to retrieve and display events
-def display_events():
-    st.write("Retrieving events from your Google Calendar...")
+# Get and display the list of events from the specified calendar
+calendar_id = "mndhamod@gmail.com"  # Replace with your calendar ID
 
-    # Retrieve events from the Google Calendar
+st.write("Events from your Google Calendar:")
+
+try:
+    # Fetch events for the next 7 days
     events = list(calendar.get_events(time_min=datetime.now(), time_max=datetime.now() + timedelta(days=7)))
 
-    # Display each event
+    # Iterate through and display events
     if events:
         for event in events:
             st.write(f"Event: {event.summary}, Start: {event.start}, End: {event.end}")
     else:
         st.write("No events found for the next 7 days.")
-
-# Function to add a new event
-def add_event():
-    st.write("Add a new event to your calendar")
-
-    event_summary = st.text_input("Event summary", "Meeting")
-    event_start_date = st.date_input("Event start date", datetime.now())
-    event_start_time = st.time_input("Event start time", datetime.now().time())
-    
-    event_end_date = st.date_input("Event end date", datetime.now() + timedelta(days=1))
-    event_end_time = st.time_input("Event end time", (datetime.now() + timedelta(hours=1)).time())
-
-    event_start = datetime.combine(event_start_date, event_start_time)
-    event_end = datetime.combine(event_end_date, event_end_time)
-
-    timezone = st.selectbox("Choose Timezone", ['America/New_York', 'Europe/London', 'UTC'])
-
-    if st.button("Add Event"):
-        try:
-            new_event = Event(
-                summary=event_summary,
-                start=event_start,
-                end=event_end,
-                timezone=timezone
-            )
-            calendar.add_event(new_event)
-            st.success(f"Event '{event_summary}' added successfully!")
-        except Exception as e:
-            st.error(f"Failed to add event: {e}")
-
-# Streamlit interface options
-st.sidebar.title("Menu")
-option = st.sidebar.selectbox("Choose an option", ("View Events", "Add Event"))
-
-if option == "View Events":
-    display_events()
-elif option == "Add Event":
-    add_event()
+except Exception as e:
+    st.error(f"An error occurred: {e}")
