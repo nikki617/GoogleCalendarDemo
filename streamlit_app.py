@@ -4,9 +4,9 @@ from google.oauth2 import service_account
 from gcsa.google_calendar import GoogleCalendar
 from calendar_integration import authenticate_google_calendar, check_availability, book_event  # Import from your module
 from llm_integration import process_user_input
-import datetime  # Make sure to import datetime
+import datetime
 
-# Load the credentials directly from Streamlit secrets without json.loads
+# Load the credentials directly from Streamlit secrets
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["CalendarAPI"],
     scopes=["https://www.googleapis.com/auth/calendar"]
@@ -17,6 +17,26 @@ calendar_service = authenticate_google_calendar(credentials)
 
 # Streamlit app title
 st.title("Smart Meeting Scheduler with AI Integration")
+
+# Display the calendar events
+calendar_id = "nikki617@bu.edu"  # Your calendar ID
+st.write("Events from your Google Calendar:")
+
+try:
+    # Fetch all events
+    events = list(calendar_service.get_events(calendar_id=calendar_id))  # Specify calendar ID
+
+    # Iterate through and display events
+    if events:
+        for event in events:
+            st.write(f"**Event:** {event.summary}")
+            st.write(f"**Start:** {event.start.isoformat()}")
+            st.write(f"**End:** {event.end.isoformat()}")
+            st.write("---")
+    else:
+        st.write("No events found.")
+except Exception as e:
+    st.error(f"An error occurred while fetching events: {e}")
 
 # User input
 user_input = st.text_input("You:", "")
