@@ -1,9 +1,7 @@
 import streamlit as st
 import json
 from google.oauth2 import service_account
-from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
-from datetime import datetime
 
 # Load the credentials from Streamlit secrets
 credentials = service_account.Credentials.from_service_account_info(
@@ -24,7 +22,7 @@ st.write("Events from your Google Calendar:")
 
 try:
     # Fetch all events
-    events = list(calendar.get_events())  # Get all events without date restriction
+    events = list(calendar.get_events(calendar_id=calendar_id))  # Specify calendar ID
 
     # Iterate through and display events
     if events:
