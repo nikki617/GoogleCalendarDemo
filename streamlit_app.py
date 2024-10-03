@@ -2,9 +2,9 @@ import streamlit as st
 import json
 from google.oauth2 import service_account
 from gcsa.google_calendar import GoogleCalendar
-from calendar_integration import authenticate_google_calendar, check_availability, book_event, delete_event, update_event
+from calendar_integration import authenticate_google_calendar, check_availability
 from llm_integration import process_user_input
-import datetime
+from datetime import datetime, timedelta
 
 # Load the credentials directly from Streamlit secrets
 credentials = service_account.Credentials.from_service_account_info(
@@ -24,16 +24,17 @@ st.write("Events from your Google Calendar:")
 
 try:
     # Fetch all events for the next 7 days
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     start_date = now.isoformat() + 'Z'  # Current time in UTC
-    end_date = (now + datetime.timedelta(days=7)).isoformat() + 'Z'  # End next week
+    end_date = (now + timedelta(days=7)).isoformat() + 'Z'  # End next week
+
     events = check_availability(calendar_service, start_date, end_date)
 
     if events:
         for event in events:
-            st.write(f"**Event:** {event.summary}")
-            st.write(f"**Start:** {event.start.isoformat()}")
-            st.write(f"**End:** {event.end.isoformat()}")
+            st.write(f"**Event:** {event['summary']}")
+            st.write(f"**Start:** {event['start'].get('dateTime', event['start'].get('date'))}")
+            st.write(f"**End:** {event['end'].get('dateTime', event['end'].get('date'))}")
             st.write("---")
     else:
         st.write("No events found.")
@@ -52,7 +53,7 @@ if st.button("Send"):
                 events = check_availability(calendar_service, start_date, end_date)  # Use updated function
                 if events:
                     event_list = [
-                        f"{event.summary} from {event.start.isoformat()} to {event.end.isoformat()}" 
+                        f"{event['summary']} from {event['start'].get('dateTime', event['start'].get('date'))} to {event['end'].get('dateTime', event['end'].get('date'))}" 
                         for event in events
                     ]
                     response += "\nYou have the following events:\n" + "\n".join(event_list)
