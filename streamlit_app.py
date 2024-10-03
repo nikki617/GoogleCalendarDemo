@@ -10,7 +10,7 @@ credentials = service_account.Credentials.from_service_account_info(
     scopes=["https://www.googleapis.com/auth/calendar"]
 )
 calendar_service = authenticate_google_calendar(credentials)
-calendar_id = "your-calendar-id@example.com"
+calendar_id = st.secrets["CalendarAPI"]["client_email"]  # Make sure to pull this from secrets
 
 # Streamlit app UI
 st.title("AI-Powered Smart Meeting Scheduler")
