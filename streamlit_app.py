@@ -4,25 +4,6 @@ from google.oauth2 import service_account
 from gcsa.google_calendar import GoogleCalendar
 from calendar_integration import authenticate_google_calendar, check_availability, book_event  # Import from your module
 from llm_integration import process_user_input
-
-I want something like this
-Example 1: Checking Calendar Availability
-
-User: Check my calendar availability from tomorrow to next week.
-Chatbot: You have an event scheduled from 9:00 AM to 10:00 AM tomorrow. Otherwise, you're free.
-Example 2: Booking an Event
-
-User: Book a meeting on Friday at 2:00 PM for one hour.
-Chatbot: Sure, I have booked a meeting for you on Friday from 2:00 PM to 3:00 PM. Anything else I can help with?
-Example 3: Updating an Event
-
-User: Update the meeting on Friday to 3:30 PM.
-Chatbot: The meeting has been updated to start at 3:30 PM. Anything else I can help with?
-Example 4: Deleting an Event
-
-User: Delete the meeting on Friday.
-Chatbot: The meeting on Friday has been deleted. Anything else I can help with?
-
 import datetime
 
 # Load the credentials directly from Streamlit secrets
