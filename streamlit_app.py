@@ -24,8 +24,9 @@ st.write("Events from your Google Calendar:")
 
 try:
     # Fetch all events for the next 7 days
-    start_date = datetime.datetime.now().isoformat() + 'Z'  # Current time
-    end_date = (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() + 'Z'  # End next week
+    now = datetime.datetime.utcnow()
+    start_date = now.isoformat() + 'Z'  # Current time in UTC
+    end_date = (now + datetime.timedelta(days=7)).isoformat() + 'Z'  # End next week
     events = check_availability(calendar_service, start_date, end_date)
 
     if events:
