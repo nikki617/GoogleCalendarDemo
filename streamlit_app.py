@@ -24,15 +24,15 @@ st.write("Events from your Google Calendar:")
 
 try:
     # Fetch all events for the next 7 days
-    start_date = datetime.datetime.now()  # Current time
-    end_date = datetime.datetime.now() + datetime.timedelta(days=7)  # End next week
-    events = check_availability(calendar_service, start_date, end_date)  # Use the updated function
+    start_date = datetime.datetime.now().isoformat() + 'Z'  # Current time
+    end_date = (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() + 'Z'  # End next week
+    events = check_availability(calendar_service, start_date, end_date)
 
     if events:
         for event in events:
             st.write(f"**Event:** {event.summary}")
-            st.write(f"**Start:** {event.start}")
-            st.write(f"**End:** {event.end}")
+            st.write(f"**Start:** {event.start.isoformat()}")
+            st.write(f"**End:** {event.end.isoformat()}")
             st.write("---")
     else:
         st.write("No events found.")
@@ -51,12 +51,12 @@ if st.button("Send"):
                 events = check_availability(calendar_service, start_date, end_date)  # Use updated function
                 if events:
                     event_list = [
-                        f"{event.summary} from {event.start} to {event.end}" 
+                        f"{event.summary} from {event.start.isoformat()} to {event.end.isoformat()}" 
                         for event in events
                     ]
                     response += "\nYou have the following events:\n" + "\n".join(event_list)
                 else:
-                    response += "\nYou're free for the next week!"
+                    response += "\nYou have no events for the next week!"
             except Exception as e:
                 response += f"\nAn error occurred while fetching your events: {e}"
 
