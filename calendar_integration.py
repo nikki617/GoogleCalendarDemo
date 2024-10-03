@@ -5,7 +5,10 @@ def authenticate_google_calendar(credentials):
     return GoogleCalendar(credentials=credentials)
 
 def check_availability(service, start_date, end_date):
-    return service.get_events(start=start_date, end=end_date)
+    """
+    This function fetches events between the start_date and end_date from Google Calendar.
+    """
+    return service.get_events(time_min=start_date, time_max=end_date)
 
 def book_event(service, start_time, end_time, summary):
     event = {
