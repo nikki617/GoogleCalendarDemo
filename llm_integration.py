@@ -1,31 +1,52 @@
 # llm_integration.py
 
-import streamlit as st  # Ensure Streamlit is imported
-from langchain.agents import create_tool_calling_agent, AgentExecutor
+# Required imports
+from langchain.agents import create_tool_calling_agent
 from langchain_openai import ChatOpenAI
-from calendar_integration import list_event_tool, add_event_tool
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.chat_message_histories import StreamlitChatMessageHistory
+from langchain_core.callbacks import CallbackManager
+from langchain.callbacks.tracers import ConsoleCallbackHandler
 
 # Create the LLM
-llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
+def create_llm(api_key):
+    """
+    Creates an instance of the ChatOpenAI model with the given API key.
+    
+    Args:
+        api_key (str): The OpenAI API key.
+        
+    Returns:
+        ChatOpenAI: An instance of the ChatOpenAI model.
+    """
+    return ChatOpenAI(api_key=api_key, temperature=0.1)
 
-# Messages used by the chatbot
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are a helpful Google Calendar assistant."),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
-    ]
-)
+# Create the agent
+def create_agent(llm, tools, prompt):
+    """
+    Creates an agent that integrates the LLM with the provided tools and prompt.
+    
+    Args:
+        llm (ChatOpenAI): The language model.
+        tools (list): A list of tools to be used by the agent.
+        prompt (ChatPromptTemplate): The prompt template to be used.
+        
+    Returns:
+        AgentExecutor: An agent executor that can be used to process inputs.
+    """
+    agent = create_tool_calling_agent(llm, tools, prompt)
+    return agent
 
-# Initialize the tools as instances of Tool or StructuredTool
-tools = [
-    list_event_tool,
-    add_event_tool,
-]
-
-# Creating the agent that will integrate the provided calendar tool with the LLM
-agent = create_tool_calling_agent(llm, tools, prompt)
-
-# Create the AgentExecutor
-agent_executor = AgentExecutor(agent=agent, tools=tools)
+# Storing message history
+def get_message_history(key="special_app_key"):
+    """
+    Creates a message history object for Streamlit.
+    
+    Args:
+        key (str): The key used for storing message history.
+        
+    Returns:
+        StreamlitChatMessageHistory: The message history object.
+    """
+    return StreamlitChatMessageHistory(key=key)
