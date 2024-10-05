@@ -1,7 +1,6 @@
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from google.oauth2 import service_account
-
 import json
 import streamlit as st
 
@@ -38,7 +37,7 @@ event_tool = Tool(
 tools = [event_tool]
 
 # LangChain - Set up the LLM
-llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], temperature=0.5)
+llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.5)
 
 # Create the agent executor using LangChain's agent framework
 agent_executor = create_tool_calling_agent(llm, tools)
