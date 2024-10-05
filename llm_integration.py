@@ -7,8 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from calendar_integration import get_events, add_event
-from calendar_integration import GetEventArgs, AddEventArgs
-
+from datetime import datetime  # Import datetime
 
 # Create the LLM
 llm = ChatOpenAI(api_key="YOUR_OPENAI_API_KEY", temperature=0.1)
