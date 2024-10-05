@@ -1,42 +1,55 @@
 import streamlit as st
-import datetime
+import openai
 from google.oauth2 import service_account
-from calendar_integration import authenticate_google_calendar, check_availability, book_event
-from llm_integration import process_user_input
+from googleapiclient.discovery import build
 
-# Load credentials for calendar API
-credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["CalendarAPI"],
-    scopes=["https://www.googleapis.com/auth/calendar"]
-)
-calendar_service = authenticate_google_calendar(credentials)
-calendar_id = st.secrets["CalendarAPI"]["client_email"]
+# Load the OpenAI API key from the secrets
+openai.api_key = st.secrets["openai"]["api_key"]
 
-# Streamlit app UI
-st.title("AI-Powered Smart Meeting Scheduler")
+# Load Google Calendar API credentials from the secrets
+calendar_credentials = {
+    "type": st.secrets["CalendarAPI"]["type"],
+    "project_id": st.secrets["CalendarAPI"]["project_id"],
+    "private_key_id": st.secrets["CalendarAPI"]["private_key_id"],
+    "private_key": st.secrets["CalendarAPI"]["private_key"].replace('\\n', '\n'),
+    "client_email": st.secrets["CalendarAPI"]["client_email"],
+    "client_id": st.secrets["CalendarAPI"]["client_id"],
+    "auth_uri": st.secrets["CalendarAPI"]["auth_uri"],
+    "token_uri": st.secrets["CalendarAPI"]["token_uri"],
+    "auth_provider_x509_cert_url": st.secrets["CalendarAPI"]["auth_provider_x509_cert_url"],
+    "client_x509_cert_url": st.secrets["CalendarAPI"]["client_x509_cert_url"]
+}
 
-# User input
-user_input = st.text_input("Ask me anything about your calendar:", "")
+# Set up the Google Calendar API client
+credentials = service_account.Credentials.from_service_account_info(calendar_credentials)
+service = build('calendar', 'v3', credentials=credentials)
 
-# Handle button click
-if st.button("Submit"):
-    if user_input:
-        # Process the user input using the OpenAI model
-        response = process_user_input(user_input)
+# Example of making an OpenAI API call
+def get_openai_response(prompt):
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=prompt,
+        max_tokens=50
+    )
+    return response.choices[0].text.strip()
 
-        # Check for calendar-related requests
-        if "availability" in user_input.lower():
-            start_date = (datetime.datetime.now() + datetime.timedelta(days=1)).isoformat() + 'Z'
-            end_date = (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() + 'Z'
-            try:
-                # Check for calendar availability
-                events = check_availability(calendar_service, start_date, end_date)
-                if events:
-                    event_list = [f"{event['summary']} from {event['start'].get('dateTime')} to {event['end'].get('dateTime')}" for event in events]
-                    response = "\nYou have the following events scheduled:\n" + "\n".join(event_list)
-                else:
-                    response = "\nYou're free for the next week!"
-            except Exception as e:
-                response = f"\nAn error occurred: {e}"
+# Example of interacting with Google Calendar
+def list_calendar_events(calendar_id='primary'):
+    events_result = service.events().list(calendarId=calendar_id, maxResults=10).execute()
+    events = events_result.get('items', [])
+    if not events:
+        st.write('No upcoming events found.')
+    for event in events:
+        st.write(event['summary'])
 
-        st.write("Response:", response)
+# Example usage
+st.title("Smart Meeting Scheduler with AI Integration")
+
+prompt = st.text_input("Enter your prompt for OpenAI:")
+if prompt:
+    response = get_openai_response(prompt)
+    st.write(f"AI Response: {response}")
+
+if st.button('List Calendar Events'):
+    list_calendar_events()
+
