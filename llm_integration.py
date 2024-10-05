@@ -6,8 +6,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
-from calendar_integration import get_events, add_event
-from datetime import datetime  # Import datetime
+from calendar_integration import get_events, add_event, GetEventArgs  # Import GetEventArgs
+from datetime import datetime  # Ensure this is imported too
 
 # Create the LLM
 llm = ChatOpenAI(api_key="YOUR_OPENAI_API_KEY", temperature=0.1)
@@ -16,11 +16,16 @@ llm = ChatOpenAI(api_key="YOUR_OPENAI_API_KEY", temperature=0.1)
 get_event_tool = StructuredTool(
     name="GetEvents",
     func=get_events,
-    args_schema=GetEventArgs,
+    args_schema=GetEventArgs,  # Ensure GetEventArgs is used here
     description="Useful for getting the list of events from the user's calendar."
 )
 
 # Tool for adding events
+class AddEventArgs(BaseModel):
+    start_date_time: datetime = Field(description="start date and time of event")
+    length_hours: int = Field(description="length of event")
+    event_name: str = Field(description="name of the event")
+
 add_event_tool = StructuredTool(
     name="AddEvent",
     func=add_event,
