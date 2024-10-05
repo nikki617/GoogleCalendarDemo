@@ -1,18 +1,37 @@
 # gcsa imports
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
+from gcsa.recurrence import Recurrence, DAILY, SU, SA
 from google.oauth2 import service_account
 
 # misc imports
+from beautiful_date import Jan, Apr, Sept, Oct
+import json
+import os
+from datetime import date, datetime
 from beautiful_date import hours
-from datetime import datetime, timedelta
 
 # langchain imports
-from langchain_core.tools import StructuredTool
+from langchain_core.runnables.utils import ConfigurableFieldSpec
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.agents.react.agent import create_react_agent
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.tools import Tool, StructuredTool  # Use the Tool object directly
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
+from langchain.agents import initialize_agent
+from langchain.agents import AgentType
+from langchain_community.chat_message_histories import (
+    StreamlitChatMessageHistory,
+)
+from langchain_community.callbacks.streamlit import (
+    StreamlitCallbackHandler,
+)
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_openai import ChatOpenAI
+from langchain.callbacks.tracers import ConsoleCallbackHandler
 from pydantic import BaseModel, Field
 
 import streamlit as st
@@ -22,7 +41,7 @@ import streamlit as st
 
 # Get the credentials from Secrets.
 credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["CalendarAPI"],
+    st.secrets["CalendarAPI"],  # st.secrets is already a dict, so use directly
     scopes=["https://www.googleapis.com/auth/calendar"]
 )
 
@@ -38,7 +57,12 @@ class GetEventargs(BaseModel):
     to_datetime: datetime = Field(description="end of date range to retrieve events")
 
 # Define the tool 
-def get_events(from_datetime: datetime, to_datetime: datetime):
+def get_events(from_datetime, to_datetime):
+    # Ensure that the current year is used by default
+    current_year = datetime.now().year
+    from_datetime = from_datetime.replace(year=current_year)
+    to_datetime = to_datetime.replace(year=current_year)
+    
     events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
     return list(events)
 
@@ -46,7 +70,7 @@ def get_events(from_datetime: datetime, to_datetime: datetime):
 list_event_tool = StructuredTool(
     name="GetEvents",
     func=get_events,
-    args_schema=GetEventargs,  # Ensure this is a Pydantic model
+    args_schema=GetEventargs,
     description="Useful for getting the list of events from the user's calendar."
 )
 
@@ -61,17 +85,22 @@ class AddEventargs(BaseModel):
     event_name: str = Field(description="name of the event")
 
 # Define the tool 
-def add_event(start_date_time: datetime, length_hours: int, event_name: str):
+def add_event(start_date_time, length_hours, event_name):
+    # Ensure the current year is used
+    current_year = datetime.now().year
+    start_date_time = start_date_time.replace(year=current_year)
     start = start_date_time
-    end = start + timedelta(hours=length_hours)
-    event = Event(event_name, start=start, end=end)
+    end = start + length_hours * hours
+    event = Event(event_name,
+                  start=start,
+                  end=end)
     return calendar.add_event(event, calendar_id="nikki617@bu.edu")
 
 # Create a Tool object 
 add_event_tool = StructuredTool(
     name="AddEvent",
     func=add_event,
-    args_schema=AddEventargs,  # Ensure this is a Pydantic model
+    args_schema=AddEventargs,
     description="Useful for adding an event with a start date, event name, and length in hours."
 )
 
@@ -117,21 +146,13 @@ for msg in msgs.messages:
 
 # When the user enters a new prompt
 if entered_prompt := st.chat_input("What does my day look like?"):
-    # Get the current date for the range
-    current_date = datetime.now()
-    start_of_month = current_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    end_of_month = (start_of_month + timedelta(days=30)).replace(day=1)  # Next month
-
-    # Prepare to get events
-    event_args = GetEventargs(from_datetime=start_of_month, to_datetime=end_of_month)
-
     # Add human message
     st.chat_message("human").write(entered_prompt)
     msgs.add_user_message(entered_prompt)
 
     # Get a response from the agent
     st_callback = StreamlitCallbackHandler(st.container())
-    response = agent.invoke({"input": entered_prompt}, {"callbacks": [st_callback]})
+    response = agent.invoke({"input": entered_prompt}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
     # Add AI response.
     response = response["output"]
