@@ -1,4 +1,4 @@
-import streamlit as st
+# Required Imports
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from gcsa.recurrence import Recurrence, DAILY, SU, SA
@@ -24,14 +24,15 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI
 from langchain.callbacks.tracers import ConsoleCallbackHandler
 from pydantic import BaseModel, Field
-import pandas as pd
+import streamlit as st
 
-# Connect to Google Calendar through an API
+# Google Calendar Credentials
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["CalendarAPI"],
     scopes=["https://www.googleapis.com/auth/calendar"]
 )
 
+# Create the GoogleCalendar instance
 calendar = GoogleCalendar(credentials=credentials)
 
 # Event listing tool
@@ -43,7 +44,7 @@ def get_events(from_datetime, to_datetime):
     current_year = datetime.now().year
     from_datetime = from_datetime.replace(year=current_year)
     to_datetime = to_datetime.replace(year=current_year)
-
+    
     events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
     return list(events)
 
@@ -75,13 +76,12 @@ add_event_tool = StructuredTool(
     description="Useful for adding an event with a start date, event name, and length in hours."
 )
 
-# Update this list with the new tools
 tools = [list_event_tool, add_event_tool]
 
 # Create the LLM
 llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
 
-# Messages used by the chatbot
+# Chatbot prompt
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", "You are a helpful Google Calendar assistant"),
@@ -90,99 +90,52 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-# Creating the agent that will integrate the provided calendar tool with the LLM.
+# Create the agent
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent = AgentExecutor(
-    agent=agent,
+    agent=agent, 
     tools=tools,
 )
 
 # Storing message history
 msgs = StreamlitChatMessageHistory(key="special_app_key")
 
-# Layout with chat on the left and calendar on the right
-col1, col2 = st.columns([2, 1])  # Adjust the ratios as needed
+# Load the first AI message
+if len(msgs.messages) == 0:
+    msgs.add_ai_message("How may I assist you today?")
 
-# Chat Interface
-with col1:
-    # Load the first AI message
-    if len(msgs.messages) == 0:
-        msgs.add_ai_message("How may I assist you today?")
+# Streamlit app layout
+st.title("Google Calendar Assistant")
 
-    # Add the rest of the conversation
-    for msg in msgs.messages:
-        if msg.type in ["ai", "human"]:
-            st.chat_message(msg.type).write(msg.content)
+# Left side for chat messages
+st.sidebar.title("Chat")
+for msg in msgs.messages:
+    if msg.type in ["ai", "human"]:
+        st.sidebar.chat_message(msg.type).write(msg.content)
 
-    # When the user enters a new prompt
-    if entered_prompt := st.chat_input("What does my day look like?"):
-        # Add human message
-        st.chat_message("human").write(entered_prompt)
-        msgs.add_user_message(entered_prompt)
+# Embed the Google Calendar
+calendar_embed_code = """
+<iframe src="https://calendar.google.com/calendar/embed?src=nikki617%40bu.edu&ctz=Europe%2FBerlin" 
+        style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>
+"""
+st.components.v1.html(calendar_embed_code, height=650)
 
-        # Get a response from the agent
-        st_callback = StreamlitCallbackHandler(st.container())
-        
-        # Specify the default date range for the current week
-        from_datetime = datetime.now()
-        to_datetime = datetime.now() + timedelta(days=7)
+# User input for the chat
+if entered_prompt := st.sidebar.text_input("What does my day look like?"):
+    st.sidebar.chat_message("human").write(entered_prompt)
+    msgs.add_user_message(entered_prompt)
 
-        # Invoke the agent with the entered prompt and the date range
-        response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
-
-        # Add AI response
-        response = response["output"]
-        st.chat_message("ai").write(response)
-        msgs.add_ai_message(response)
-
-# Calendar Interface
-with col2:
-    st.subheader("Your Calendar")
+    # Get a response from the agent
+    st_callback = StreamlitCallbackHandler(st.container())
     
-    # Create a DataFrame for the calendar
-    now = datetime.now()
-    month = now.month
-    year = now.year
+    # Specify the default date range for the current week
+    from_datetime = datetime.now()
+    to_datetime = datetime.now() + timedelta(days=7)
     
-    # Get events for the current month
-    start_date = datetime(year, month, 1)
-    end_date = (start_date + pd.DateOffset(months=1)).replace(day=1)
-    events = get_events(start_date, end_date)
+    # Invoke the agent
+    response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
-    # Create a dictionary to hold events by day
-    events_by_day = {}
-    for event in events:
-        event_day = event.start.day
-        events_by_day[event_day] = event.summary
-
-    # Create the calendar grid
-    days_in_month = (end_date - start_date).days
-    start_weekday = start_date.weekday()  # Monday is 0
-    calendar_grid = [["" for _ in range(7)] for _ in range(6)]  # 6 rows for max 6 weeks
-
-    # Fill the calendar grid
-    day = 1
-    for week in range(6):
-        for weekday in range(7):
-            if week == 0 and weekday < start_weekday:
-                calendar_grid[week][weekday] = ""
-            elif day <= days_in_month:
-                calendar_grid[week][weekday] = day
-                day += 1
-
-    # Display the calendar
-    st.markdown("<style>table {width: 100%; text-align: center;}</style>", unsafe_allow_html=True)
-    st.write("<table>", unsafe_allow_html=True)
-    st.write("<tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>", unsafe_allow_html=True)
-
-    for week in calendar_grid:
-        st.write("<tr>", unsafe_allow_html=True)
-        for day in week:
-            if day != "":
-                event_name = events_by_day.get(day, "")
-                st.write(f"<td style='background-color: lightgreen;'>" + str(day) + ("<br>" + event_name if event_name else "") + "</td>", unsafe_allow_html=True)
-            else:
-                st.write("<td></td>", unsafe_allow_html=True)
-        st.write("</tr>", unsafe_allow_html=True)
-    
-    st.write("</table>", unsafe_allow_html=True)
+    # Add AI response
+    response = response["output"]
+    st.sidebar.chat_message("ai").write(response)
+    msgs.add_ai_message(response)
