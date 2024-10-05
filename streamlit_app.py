@@ -114,7 +114,7 @@ calendar_embed_code = """
 st.components.v1.html(calendar_embed_code, height=650)
 
 # User input for the chat
-if entered_prompt := st.sidebar.text_input("What does my day look like?"):
+if entered_prompt := st.sidebar.text_input("How can I help you today?"):
     # Clear the message history for the new prompt
     msgs.clear()
 
