@@ -1,13 +1,28 @@
 # Required Imports
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
+from gcsa.recurrence import Recurrence, DAILY, SU, SA
 from google.oauth2 import service_account
-from datetime import datetime, timedelta
-from langchain_core.tools import StructuredTool
+from beautiful_date import Jan, Apr, Sept, Oct
+import json
+import os
+from datetime import date, datetime, timedelta
+from beautiful_date import hours
+from langchain_core.runnables.utils import ConfigurableFieldSpec
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.agents.react.agent import create_react_agent
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.tools import Tool, StructuredTool
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import AgentType
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_openai import ChatOpenAI
+from langchain.callbacks.tracers import ConsoleCallbackHandler
 from pydantic import BaseModel, Field
 import streamlit as st
 
@@ -50,7 +65,7 @@ def add_event(start_date_time, length_hours, event_name):
     current_year = datetime.now().year
     start_date_time = start_date_time.replace(year=current_year)
     start = start_date_time
-    end = start + timedelta(hours=length_hours)
+    end = start + length_hours * hours
     event = Event(event_name, start=start, end=end)
     return calendar.add_event(event, calendar_id="nikki617@bu.edu")
 
@@ -77,7 +92,10 @@ prompt = ChatPromptTemplate.from_messages(
 
 # Create the agent
 agent = create_tool_calling_agent(llm, tools, prompt)
-agent = AgentExecutor(agent=agent, tools=tools)
+agent = AgentExecutor(
+    agent=agent, 
+    tools=tools,
+)
 
 # Storing message history
 msgs = StreamlitChatMessageHistory(key="special_app_key")
@@ -96,7 +114,6 @@ st.markdown(
         border: 1px solid #ddd;
         border-radius: 10px;
         padding: 10px;
-        margin-bottom: 20px;
     }
     .user-message {
         background-color: #e1f5fe;
@@ -115,38 +132,36 @@ st.markdown(
 )
 
 # Layout for chat and calendar
-col1, col2 = st.columns([1, 1])
+col1, col2 = st.columns([1, 2])
 
-# Left side for the chat interface
+# Left side for chat messages
 with col1:
-    st.subheader("Chat with Your Assistant")
-    chat_container = st.container()
-
-    # Message input field
-    entered_prompt = st.text_input("Ask your Google Calendar Assistant:", "")
-
-    if st.button("Send"):
+    st.sidebar.title("Chat")
+    
+    # User input for the chat
+    entered_prompt = st.sidebar.text_input("What does my day look like?", "")
+    
+    if st.sidebar.button("Send"):
         # Clear the message history for the new prompt
         msgs.clear()
 
-        if entered_prompt:
-            st.chat_message("human").write(entered_prompt)
-            msgs.add_user_message(entered_prompt)
+        st.sidebar.chat_message("human").write(entered_prompt)
+        msgs.add_user_message(entered_prompt)
 
-            # Get a response from the agent
-            st_callback = StreamlitCallbackHandler(chat_container)
-            
-            # Specify the default date range for the current week
-            from_datetime = datetime.now()
-            to_datetime = datetime.now() + timedelta(days=7)
-            
-            # Invoke the agent
-            response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback]})
+        # Get a response from the agent
+        st_callback = StreamlitCallbackHandler(st.container())
+        
+        # Specify the default date range for the current week
+        from_datetime = datetime.now()
+        to_datetime = datetime.now() + timedelta(days=7)
+        
+        # Invoke the agent
+        response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
-            # Add AI response
-            response = response["output"]
-            st.chat_message("ai").write(response)
-            msgs.add_ai_message(response)
+        # Add AI response
+        response = response["output"]
+        st.sidebar.chat_message("ai").write(response)
+        msgs.add_ai_message(response)
 
 # Right side for the calendar
 with col2:
@@ -155,4 +170,4 @@ with col2:
     <iframe src="https://calendar.google.com/calendar/embed?src=nikki617%40bu.edu&ctz=Europe%2FBerlin" 
             style="border: 0" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
     """
-    st.components.v1.html(calendar_embed_code, height=600)
+    st.components.v1.html(calendar_embed_code, height=650)
