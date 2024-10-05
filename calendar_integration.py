@@ -1,20 +1,18 @@
-# calendar_utils.py
+# calendar_integration.py
 
 # gcsa imports
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
-from gcsa.recurrence import Recurrence, DAILY, SU, SA
 from google.oauth2 import service_account
-from beautiful_date import hours
-import os
-from datetime import datetime
 from pydantic import BaseModel, Field
+from datetime import datetime
+import streamlit as st
 
 # Connecting to the Google Calendar through an API
 def connect_calendar():
     # Get the credentials from Secrets.
     credentials = service_account.Credentials.from_service_account_info(
-        st.secrets["CalendarAPI"],  # st.secrets is already a dict, so use directly
+        st.secrets["CalendarAPI"],
         scopes=["https://www.googleapis.com/auth/calendar"]
     )
     return GoogleCalendar(credentials=credentials)
@@ -44,6 +42,6 @@ def add_event(calendar, start_date_time, length_hours, event_name):
     current_year = datetime.now().year
     start_date_time = start_date_time.replace(year=current_year)
     start = start_date_time
-    end = start + length_hours * hours
+    end = start + length_hours * 3600  # hours in seconds
     event = Event(event_name, start=start, end=end)
     return calendar.add_event(event, calendar_id="nikki617@bu.edu")
