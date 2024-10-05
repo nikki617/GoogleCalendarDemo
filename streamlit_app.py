@@ -111,28 +111,30 @@ with col1:
     st.sidebar.title("Chat")
 
     # User input for the chat
-    if entered_prompt := st.sidebar.text_input("What does my day look like?", placeholder="Ask me about your schedule!"):
-        # Clear the message history for the new prompt
-        msgs.clear()
+    # User input for the chat
+if entered_prompt := st.sidebar.text_input("What does my day look like?", placeholder="Ask me about your schedule!"):
+    # Clear the message history for the new prompt
+    msgs.clear()
 
-        st.sidebar.chat_message("human").write(entered_prompt)
-        msgs.add_user_message(entered_prompt)
+    st.sidebar.chat_message("human").write(entered_prompt)
+    msgs.add_user_message(entered_prompt)
 
-        # Get a response from the agent
-        st_callback = StreamlitCallbackHandler(st.container())
-        
-        # Specify the default date range for the current week
-        from_datetime = datetime.now()
-        to_datetime = datetime.now() + timedelta(days=7)
-        
-        # Invoke the agent
-        response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
+    # Get a response from the agent
+    st_callback = StreamlitCallbackHandler(st.container())
+    
+    # Specify the default date range for the current week
+    from_datetime = datetime.now()
+    to_datetime = datetime.now() + timedelta(days=7)
+    
+    # Invoke the agent
+    response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
-        # Display only the AI's response, suppressing the details
-        if 'output' in response:
-            response_output = response["output"]
-            st.sidebar.chat_message("ai").write(response_output)  # Show only AI response
-            msgs.add_ai_message(response_output)
+    # Display only the AI's response, suppressing the details
+    if 'output' in response:
+        response_output = response["output"]
+        st.sidebar.chat_message("ai").write(response_output)  # Show only AI response
+        msgs.add_ai_message(response_output)
+
 
 # Right side for calendar
 with col2:
