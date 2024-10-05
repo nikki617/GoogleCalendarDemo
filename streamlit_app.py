@@ -1,9 +1,11 @@
 # streamlit_app.py
 
 import streamlit as st
-from calendar_integration import connect_calendar, get_events, add_event, GetEventArgs, AddEventArgs  # Import the argument classes
+from calendar_integration import connect_calendar, get_events, add_event, GetEventArgs, AddEventArgs
 from llm_integration import LangChainManager
 from datetime import datetime, timedelta
+from langchain_community.callbacks.streamlit import StreamlitCallbackHandler  # Add this import
+from langchain.callbacks.tracers import ConsoleCallbackHandler  # Make sure to import this too
 
 def main():
     # Connect to Google Calendar
