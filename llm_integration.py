@@ -1,20 +1,50 @@
-import streamlit as st
-from langchain_community.chat_models import ChatOpenAI
-from langchain.schema import AIMessage, HumanMessage, SystemMessage
+# llm_integration.py
 
-# Initialize the ChatOpenAI with your API key from Streamlit secrets
-chat = ChatOpenAI(
-    temperature=0,
-    model='gpt-3.5-turbo',
-    openai_api_key=st.secrets["openai"]["api_key"]  # Ensure this is set correctly in secrets
-)
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.agents.react.agent import create_react_agent
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.tools import Tool, StructuredTool
+from langchain_openai import ChatOpenAI
+from langchain.agents import AgentExecutor
 
-def process_user_input(user_input):
-    messages = [
-        SystemMessage(content='You are an assistant that helps manage calendar events.'),
-        HumanMessage(content=user_input)
-    ]
+# Import the calendar functions
+from calendar_integration import get_events, add_event
 
-    # Generate AI response
-    ai_response = chat(messages=messages).content
-    return ai_response
+# Create the LLM
+def create_agent(api_key):
+    llm = ChatOpenAI(api_key=api_key, temperature=0.1)
+
+    # Messages used by the chatbot
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", "You are a helpful Google Calendar assistant"),
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ]
+    )
+
+    # Creating the agent that will integrate the provided calendar tool with the LLM.
+    agent = create_tool_calling_agent(llm, tools, prompt)
+    return AgentExecutor(agent=agent, tools=tools)
+
+# Create tools (make sure to import StructuredTool from langchain_core.tools)
+def get_tools():
+    from calendar_integration import get_events, add_event  # Import functions here
+
+    # Create Tool objects for events
+    list_event_tool = StructuredTool(
+        name="GetEvents",
+        func=get_events,
+        args_schema=GetEventArgs,
+        description="Useful for getting the list of events from the user's calendar."
+    )
+
+    add_event_tool = StructuredTool(
+        name="AddEvent",
+        func=add_event,
+        args_schema=AddEventArgs,
+        description="Useful for adding an event with a start date, event name, and length in hours."
+    )
+
+    return [list_event_tool, add_event_tool]
