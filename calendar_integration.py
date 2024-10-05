@@ -4,7 +4,7 @@ from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from google.oauth2 import service_account
 from pydantic import BaseModel, Field
-from datetime import datetime, timedelta  # Import datetime and timedelta
+from datetime import datetime, timedelta  # Ensure this is imported
 import streamlit as st
 
 # Connecting to the Google Calendar through an API
