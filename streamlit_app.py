@@ -100,18 +100,11 @@ agent = AgentExecutor(
 # Storing message history
 msgs = StreamlitChatMessageHistory(key="special_app_key")
 
-# Load the first AI message
-if len(msgs.messages) == 0:
-    msgs.add_ai_message("How may I assist you today?")
-
 # Streamlit app layout
 st.title("Google Calendar Assistant")
 
 # Left side for chat messages
 st.sidebar.title("Chat")
-for msg in msgs.messages:
-    if msg.type in ["ai", "human"]:
-        st.sidebar.chat_message(msg.type).write(msg.content)
 
 # Embed the Google Calendar
 calendar_embed_code = """
@@ -122,6 +115,9 @@ st.components.v1.html(calendar_embed_code, height=650)
 
 # User input for the chat
 if entered_prompt := st.sidebar.text_input("What does my day look like?"):
+    # Clear the message history for the new prompt
+    msgs.clear()
+
     st.sidebar.chat_message("human").write(entered_prompt)
     msgs.add_user_message(entered_prompt)
 
