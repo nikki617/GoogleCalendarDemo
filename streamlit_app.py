@@ -101,37 +101,73 @@ agent = AgentExecutor(
 msgs = StreamlitChatMessageHistory(key="special_app_key")
 
 # Streamlit app layout
-st.title("Google Calendar Assistant")
+st.set_page_config(page_title="Google Calendar Assistant", layout="wide")
+st.title("🗓️ Google Calendar Assistant")
+
+# CSS for styling
+st.markdown(
+    """
+    <style>
+    .chat-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 10px;
+    }
+    .user-message {
+        background-color: #e1f5fe;
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 5px;
+    }
+    .ai-message {
+        background-color: #ffe0b2;
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 5px;
+    }
+    </style>
+    """, unsafe_allow_html=True
+)
+
+# Layout for chat and calendar
+col1, col2 = st.columns([1, 2])
 
 # Left side for chat messages
-st.sidebar.title("Chat")
-
-# Embed the Google Calendar
-calendar_embed_code = """
-<iframe src="https://calendar.google.com/calendar/embed?src=nikki617%40bu.edu&ctz=Europe%2FBerlin" 
-        style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>
-"""
-st.components.v1.html(calendar_embed_code, height=650)
-
-# User input for the chat
-if entered_prompt := st.sidebar.text_input("What does my day look like?"):
-    # Clear the message history for the new prompt
-    msgs.clear()
-
-    st.sidebar.chat_message("human").write(entered_prompt)
-    msgs.add_user_message(entered_prompt)
-
-    # Get a response from the agent
-    st_callback = StreamlitCallbackHandler(st.container())
+with col1:
+    st.sidebar.title("Chat")
     
-    # Specify the default date range for the current week
-    from_datetime = datetime.now()
-    to_datetime = datetime.now() + timedelta(days=7)
+    # User input for the chat
+    entered_prompt = st.sidebar.text_input("What does my day look like?", "")
     
-    # Invoke the agent
-    response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
+    if st.sidebar.button("Send"):
+        # Clear the message history for the new prompt
+        msgs.clear()
 
-    # Add AI response
-    response = response["output"]
-    st.sidebar.chat_message("ai").write(response)
-    msgs.add_ai_message(response)
+        st.sidebar.chat_message("human").write(entered_prompt)
+        msgs.add_user_message(entered_prompt)
+
+        # Get a response from the agent
+        st_callback = StreamlitCallbackHandler(st.container())
+        
+        # Specify the default date range for the current week
+        from_datetime = datetime.now()
+        to_datetime = datetime.now() + timedelta(days=7)
+        
+        # Invoke the agent
+        response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
+
+        # Add AI response
+        response = response["output"]
+        st.sidebar.chat_message("ai").write(response)
+        msgs.add_ai_message(response)
+
+# Right side for the calendar
+with col2:
+    # Embed the Google Calendar
+    calendar_embed_code = """
+    <iframe src="https://calendar.google.com/calendar/embed?src=nikki617%40bu.edu&ctz=Europe%2FBerlin" 
+            style="border: 0" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
+    """
+    st.components.v1.html(calendar_embed_code, height=650)
