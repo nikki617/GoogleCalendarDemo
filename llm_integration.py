@@ -6,7 +6,7 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 chat = ChatOpenAI(
     temperature=0,
     model='gpt-3.5-turbo',
-    openai_api_key=st.secrets["openai"]["api_key"]  # Ensure this is set correctly in secrets
+    openai_api_key=st.secrets["openai"]["api_key"]
 )
 
 def process_user_input(user_input):
