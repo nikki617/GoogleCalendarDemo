@@ -1,115 +1,68 @@
 import streamlit as st
-import openai
-import pandas as pd
-from datetime import datetime, timedelta
+import json
 from google.oauth2 import service_account
-from googleapiclient.discovery import build
+from gcsa.google_calendar import GoogleCalendar
+from calendar_integration import authenticate_google_calendar, check_availability, book_event  # Import from your module
+from llm_integration import process_user_input
+import datetime
 
-# Load secrets
-secrets = st.secrets
-
-# OpenAI API Key
-openai.api_key = secrets["openai"]["api_key"]
-
-# Google Calendar API credentials
+# Load the credentials directly from Streamlit secrets
 credentials = service_account.Credentials.from_service_account_info(
-    {
-        "type": secrets["CalendarAPI"]["type"],
-        "project_id": secrets["CalendarAPI"]["project_id"],
-        "private_key_id": secrets["CalendarAPI"]["private_key_id"],
-        "private_key": secrets["CalendarAPI"]["private_key"].replace('\\n', '\n'),  # Ensure newlines are correct
-        "client_email": secrets["CalendarAPI"]["client_email"],
-        "client_id": secrets["CalendarAPI"]["client_id"],
-        "auth_uri": secrets["CalendarAPI"]["auth_uri"],
-        "token_uri": secrets["CalendarAPI"]["token_uri"],
-        "auth_provider_x509_cert_url": secrets["CalendarAPI"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": secrets["CalendarAPI"]["client_x509_cert_url"],
-    }
+    st.secrets["CalendarAPI"],
+    scopes=["https://www.googleapis.com/auth/calendar"]
 )
 
-# Build the Google Calendar API service
-service = build('calendar', 'v3', credentials=credentials)
+# Create the GoogleCalendar object with the credentials
+calendar_service = authenticate_google_calendar(credentials)
 
-# Function to list upcoming events
-def list_events():
-    now = datetime.utcnow().isoformat() + 'Z'  # Current time
-    events_result = service.events().list(calendarId='primary', timeMin=now,
-                                          maxResults=10, singleEvents=True,
-                                          orderBy='startTime').execute()
-    events = events_result.get('items', [])
-    
-    if not events:
-        return "No upcoming events found."
-    
-    event_data = []
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        event_data.append({"summary": event['summary'], "start": start})
-
-    return pd.DataFrame(event_data)
-
-# Function to create an event
-def create_event(summary, start_time, end_time):
-    event = {
-        'summary': summary,
-        'start': {
-            'dateTime': start_time,
-            'timeZone': 'UTC',
-        },
-        'end': {
-            'dateTime': end_time,
-            'timeZone': 'UTC',
-        },
-    }
-    event = service.events().insert(calendarId='primary', body=event).execute()
-    return f"Event created: {event.get('htmlLink')}"
-
-# Streamlit UI
+# Streamlit app title
 st.title("Smart Meeting Scheduler with AI Integration")
 
-# List Events
-if st.button("List Upcoming Events"):
-    events_df = list_events()
-    st.write(events_df)
+# Display the calendar events
+calendar_id = "nikki617@bu.edu"  # Your calendar ID
+st.write("Events from your Google Calendar:")
 
-# Create Event
-st.subheader("Create a New Event")
-summary = st.text_input("Event Summary")
+try:
+    # Fetch all events
+    events = list(calendar_service.get_events(calendar_id=calendar_id))  # Specify calendar ID
 
-# Set default datetime values for inputs
-current_time = datetime.now()
-start_time = st.date_input("Start Date", current_time.date())
-start_hour = st.time_input("Start Time", current_time.time())
-end_time = st.time_input("End Time", (current_time + timedelta(hours=1)).time())
-
-# Combine date and time into a single datetime object
-start_datetime = datetime.combine(start_time, start_hour)
-end_datetime = datetime.combine(start_time, end_time)
-
-if st.button("Create Event"):
-    if summary and start_datetime and end_datetime:
-        if start_datetime < end_datetime:
-            result = create_event(summary, start_datetime.isoformat(), end_datetime.isoformat())
-            st.success(result)
-        else:
-            st.error("End time must be after start time.")
+    # Iterate through and display events
+    if events:
+        for event in events:
+            st.write(f"*Event:* {event.summary}")
+            st.write(f"*Start:* {event.start.isoformat()}")
+            st.write(f"*End:* {event.end.isoformat()}")
+            st.write("---")
     else:
-        st.error("Please fill in all fields.")
+        st.write("No events found.")
+except Exception as e:
+    st.error(f"An error occurred while fetching events: {e}")
 
-# ChatGPT Integration
-st.subheader("Ask a Question to AI")
-user_query = st.text_input("Your question here...")
+# User input
+user_input = st.text_input("You:", "")
 
-if st.button("Get AI Response"):
-    if user_query:
-        # Updated API call
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "user", "content": user_query}
-            ]
-        )
-        ai_response = response['choices'][0]['message']['content']
-        st.write(ai_response)
+if st.button("Send"):
+    if user_input:
+        response = process_user_input(user_input)  # Process user input through OpenAI
+        
+        # Check if the user is asking to show all events
+        if "show me all events" in user_input.lower() or "list my events" in user_input.lower() or "can you show me all the events" in user_input.lower():
+            start_date = datetime.datetime.now().isoformat() + 'Z'  # Current time
+            end_date = (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() + 'Z'  # End next week
+            
+            try:
+                events = check_availability(calendar_service, start_date, end_date)
+                if events:
+                    event_list = [
+                        f"{event['summary']} from {event['start'].get('dateTime', event['start'].get('date'))} to {event['end'].get('dateTime', event['end'].get('date'))}" 
+                        for event in events
+                    ]
+                    response += "\nYou have the following events scheduled:\n" + "\n".join(event_list)
+                else:
+                    response += "\nYou're free for the next week!"
+            except Exception as e:
+                response += f"\nAn error occurred while fetching your events: {e}"
+        
+        st.write("Chatbot:", response)
     else:
-        st.error("Please enter a question.")
+        st.write("Please enter a message.")
