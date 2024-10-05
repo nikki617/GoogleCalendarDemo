@@ -6,10 +6,11 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 chat = ChatOpenAI(
     temperature=0,
     model='gpt-3.5-turbo',
-    openai_api_key=st.secrets["openai"]["api_key"]
+    openai_api_key=st.secrets["openai"]["api_key"]  # Ensure this is set correctly in secrets
 )
 
 def process_user_input(user_input):
+    # Define conversation context for the model
     messages = [
         SystemMessage(content='You are an assistant that helps manage calendar events.'),
         HumanMessage(content=user_input)
