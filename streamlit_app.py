@@ -16,7 +16,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 
 # Get the credentials from Streamlit secrets
 credentials = service_account.Credentials.from_service_account_info(
-    json.loads(st.secrets["MYJSON"]),
+    json.loads(st.secrets["CalendarAPI"]),
     scopes=["https://www.googleapis.com/auth/calendar"]
 )
 
