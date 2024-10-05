@@ -3,10 +3,10 @@ import openai
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-# Load the OpenAI API key from the secrets
+# Load the OpenAI API key from secrets
 openai.api_key = st.secrets["openai"]["api_key"]
 
-# Load Google Calendar API credentials from the secrets
+# Load Google Calendar API credentials from secrets
 calendar_credentials = {
     "type": st.secrets["CalendarAPI"]["type"],
     "project_id": st.secrets["CalendarAPI"]["project_id"],
@@ -22,9 +22,10 @@ calendar_credentials = {
 
 # Set up the Google Calendar API client
 credentials = service_account.Credentials.from_service_account_info(calendar_credentials)
-service = build('calendar', 'v3', credentials=credentials)
+scoped_credentials = credentials.with_scopes(['https://www.googleapis.com/auth/calendar.readonly'])
+service = build('calendar', 'v3', credentials=scoped_credentials)
 
-# Example of making an OpenAI API call
+# Function to get OpenAI response
 def get_openai_response(prompt):
     response = openai.Completion.create(
         engine="text-davinci-003",
@@ -33,23 +34,35 @@ def get_openai_response(prompt):
     )
     return response.choices[0].text.strip()
 
-# Example of interacting with Google Calendar
+# Function to list Google Calendar events
 def list_calendar_events(calendar_id='primary'):
-    events_result = service.events().list(calendarId=calendar_id, maxResults=10).execute()
-    events = events_result.get('items', [])
-    if not events:
-        st.write('No upcoming events found.')
-    for event in events:
-        st.write(event['summary'])
+    try:
+        events_result = service.events().list(calendarId=calendar_id, maxResults=10).execute()
+        events = events_result.get('items', [])
+        if not events:
+            return "No upcoming events found."
+        event_list = []
+        for event in events:
+            event_list.append(event['summary'])
+        return event_list
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
 
-# Example usage
-st.title("Smart Meeting Scheduler with AI Integration")
+# Streamlit app layout
+st.title("AI-Powered Smart Meeting Scheduler")
 
-prompt = st.text_input("Enter your prompt for OpenAI:")
+# Input prompt for OpenAI
+prompt = st.text_input("Ask me anything about your calendar:")
 if prompt:
     response = get_openai_response(prompt)
     st.write(f"AI Response: {response}")
 
-if st.button('List Calendar Events'):
-    list_calendar_events()
-
+# Show calendar events
+if st.button('Show me all events'):
+    events = list_calendar_events()
+    if isinstance(events, list):
+        st.write("Upcoming events:")
+        for event in events:
+            st.write(f"- {event}")
+    else:
+        st.write(events)  # Display any error messages or no events message
