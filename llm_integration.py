@@ -1,3 +1,25 @@
+# langchain imports
+from langchain_core.runnables.utils import ConfigurableFieldSpec
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.agents.react.agent import create_react_agent
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.tools import Tool, StructuredTool  # Use the Tool object directly
+from langchain_openai import ChatOpenAI
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import AgentType
+from langchain_community.chat_message_histories import (
+    StreamlitChatMessageHistory,
+)
+from langchain_community.callbacks.streamlit import (
+    StreamlitCallbackHandler,
+)
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_openai import ChatOpenAI
+from langchain.callbacks.tracers import ConsoleCallbackHandler
+from pydantic import BaseModel, Field
+
 # Create the LLM
 llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
 
