@@ -60,14 +60,19 @@ def create_google_calendar_event(event_summary, event_start, event_end):
 # Main Streamlit app logic
 st.title("Smart Meeting Scheduler")
 
-# Get OpenAI completion (example usage)
+# Example usage of OpenAI API for chat completion
 st.write("Let's use OpenAI API!")
-response = openai.Completion.create(
-    engine="text-davinci-003",
-    prompt="What is the current weather?",
-    max_tokens=50
+
+# Use ChatCompletion instead of Completion
+response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",  # or gpt-4 if you have access
+    messages=[
+        {"role": "user", "content": "What is the current weather?"}
+    ]
 )
-st.write(response.choices[0].text)
+
+# Display the response
+st.write(response.choices[0].message['content'])
 
 # Button to fetch Google Calendar events
 if st.button("Show Upcoming Events"):
