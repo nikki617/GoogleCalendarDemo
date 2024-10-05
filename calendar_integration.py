@@ -1,3 +1,10 @@
+# misc imports
+from beautiful_date import Jan, Apr, Sept, Oct
+import json
+import os
+from datetime import date, datetime, timedelta
+from beautiful_date import hours
+
 # Create the GoogleCalendar.
 calendar = GoogleCalendar(credentials=credentials)
 
