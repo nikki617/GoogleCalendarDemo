@@ -102,6 +102,7 @@ user_query = st.text_input("Your question here...")
 
 if st.button("Get AI Response"):
     if user_query:
+        # Updated API call
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
