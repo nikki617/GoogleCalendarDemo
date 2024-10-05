@@ -15,5 +15,5 @@ class LLMIntegration:
             )
             return response['choices'][0]['message']['content']
         except Exception as e:
-            st.error(f"Error communicating with OpenAI: {e}")
+            st.error(f"Error communicating with LLM: {e}")
             return None
