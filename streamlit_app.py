@@ -148,19 +148,14 @@ with col1:
         from_datetime = datetime.now()
         to_datetime = datetime.now() + timedelta(days=7)
         
-        # Invoke the agent, but do not display the response yet
+        # Invoke the agent
         response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
-        # Check if the response contains output and log it if necessary
+        # Only extract the necessary output and suppress detailed logs
         if 'output' in response:
             response_output = response["output"]
-            # Log the response to a file instead of displaying it
-            with open('log.txt', 'a') as log_file:
-                log_file.write(f"User: {entered_prompt}\nAgent: {response_output}\n")
-
-            # Optionally display a message in the sidebar
-            st.sidebar.chat_message("ai").write("Response generated. Check logs for details.")
-            msgs.add_ai_message("Response generated. Check logs for details.")
+            st.sidebar.chat_message("ai").write(response_output)
+            msgs.add_ai_message(response_output)
 
 # Right side for calendar
 with col2:
