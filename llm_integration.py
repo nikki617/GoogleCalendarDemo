@@ -1,5 +1,6 @@
 # llm_integration.py
 
+import streamlit as st  # Ensure Streamlit is imported
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_openai import ChatOpenAI
 from calendar_integration import list_event_tool, add_event_tool
@@ -19,18 +20,8 @@ prompt = ChatPromptTemplate.from_messages(
 
 # Initialize the tools as instances of Tool or StructuredTool
 tools = [
-    Tool(
-        name=list_event_tool['name'],
-        func=list_event_tool['func'],
-        description=list_event_tool['description'],
-        parameters=list_event_tool['parameters']
-    ),
-    Tool(
-        name=add_event_tool['name'],
-        func=add_event_tool['func'],
-        description=add_event_tool['description'],
-        parameters=add_event_tool['parameters']
-    ),
+    list_event_tool,
+    add_event_tool,
 ]
 
 # Creating the agent that will integrate the provided calendar tool with the LLM
