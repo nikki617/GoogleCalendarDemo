@@ -1,6 +1,5 @@
 # calendar_integration.py
 
-# gcsa imports
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from google.oauth2 import service_account
@@ -38,8 +37,6 @@ class AddEventArgs(BaseModel):
     event_name: str = Field(description="name of the event")
 
 # Define the tool for adding events 
-# calendar_integration.py
-
 def add_event(calendar, start_date_time, length_hours, event_name):
     # Convert start_date_time to a datetime object
     start = datetime.fromisoformat(start_date_time.replace("Z", "+00:00"))  # Ensure proper UTC handling
