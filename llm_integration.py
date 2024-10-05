@@ -1,19 +1,20 @@
 import streamlit as st
-import openai
+from langchain_community.chat_models import ChatOpenAI
+from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
-class LLMIntegration:
-    def __init__(self):
-        openai.api_key = st.secrets['openai']['api_key']
+# Initialize the ChatOpenAI with your API key from Streamlit secrets
+chat = ChatOpenAI(
+    temperature=0,
+    model='gpt-3.5-turbo',
+    openai_api_key=st.secrets["openai"]["api_key"]  # Ensure this is set correctly in secrets
+)
 
-    def generate_response(self, prompt):
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            return response['choices'][0]['message']['content']
-        except Exception as e:
-            st.error(f"Error communicating with LLM: {e}")
-            return None
+def process_user_input(user_input):
+    messages = [
+        SystemMessage(content='You are an assistant that helps manage calendar events.'),
+        HumanMessage(content=user_input)
+    ]
+
+    # Generate AI response
+    ai_response = chat(messages=messages).content
+    return ai_response
