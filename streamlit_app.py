@@ -1,8 +1,9 @@
-# main.py
+# streamlit_app.py
 
 import streamlit as st
-from calendar_utils import connect_calendar, get_events, add_event
-from langchain_utils import LangChainManager
+from calendar_integration import connect_calendar, get_events, add_event
+from llm_integration import LangChainManager
+from datetime import datetime, timedelta
 
 def main():
     # Connect to Google Calendar
