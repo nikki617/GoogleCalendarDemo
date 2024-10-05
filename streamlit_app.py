@@ -1,88 +1,47 @@
-from gcsa.event import Event
-from gcsa.google_calendar import GoogleCalendar
-from google.oauth2 import service_account
-import json
 import streamlit as st
+import json
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import Tool
-from langchain_openai import ChatOpenAI
-from langchain.agents import create_tool_calling_agent
-from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from langchain_core.runnables.history import RunnableWithMessageHistory
+# Load Google Calendar API credentials from Streamlit secrets
+if "CalendarAPI" in st.secrets:
+    calendar_api = st.secrets["CalendarAPI"]
 
-## Google Calendar Setup
+    # Extract the credentials
+    type_ = calendar_api["type"]
+    project_id = calendar_api["project_id"]
+    private_key_id = calendar_api["private_key_id"]
+    private_key = calendar_api["private_key"]
+    client_email = calendar_api["client_email"]
+    client_id = calendar_api["client_id"]
+    auth_uri = calendar_api["auth_uri"]
+    token_uri = calendar_api["token_uri"]
+    auth_provider_x509_cert_url = calendar_api["auth_provider_x509_cert_url"]
+    client_x509_cert_url = calendar_api["client_x509_cert_url"]
 
-# Get the credentials from Streamlit secrets
-credentials = service_account.Credentials.from_service_account_info(
-    json.loads(st.secrets["CalendarAPI"]),
-    scopes=["https://www.googleapis.com/auth/calendar"]
-)
+    # Create credentials object
+    credentials = service_account.Credentials.from_service_account_info(calendar_api)
 
-# Create the Google Calendar instance
-calendar = GoogleCalendar(credentials=credentials)
+    # Build the Google Calendar API service
+    service = build('calendar', 'v3', credentials=credentials)
 
-# Define the tool to get calendar events
-def get_events_tool(dummy):
-    return list(calendar.get_events(calendar_id="mndhamod@gmail.com"))
+    st.title("Google Calendar Integration")
 
-# Create a Tool object for the events tool
-event_tool = Tool(
-    name="GetEvents",
-    func=get_events_tool,
-    description="Useful for getting the list of events from the user's calendar."
-)
+    # Example functionality: list upcoming events
+    st.subheader("Upcoming Events")
 
-# List of tools (you can add more as needed)
-tools = [event_tool]
+    # Call the Calendar API
+    now = '2024-10-01T00:00:00Z'  # Replace with your desired time
+    events_result = service.events().list(calendarId='primary', timeMin=now,
+                                          maxResults=10, singleEvents=True,
+                                          orderBy='startTime').execute()
+    events = events_result.get('items', [])
 
-# LangChain - Set up the LLM
-llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.5)
+    if not events:
+        st.write('No upcoming events found.')
+    for event in events:
+        start = event['start'].get('dateTime', event['start'].get('date'))
+        st.write(f"{start}: {event['summary']}")
 
-# Create the agent executor using LangChain's agent framework
-agent_executor = create_tool_calling_agent(llm, tools)
-
-# Set up chat history in Streamlit
-msgs = StreamlitChatMessageHistory(key="special_app_key")
-
-if len(msgs.messages) == 0:
-    msgs.add_ai_message("How can I help you?")
-
-# Define the chat prompt structure
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are an AI chatbot having a conversation with a human."),
-        ("history", "You are retaining the user's chat history for context."),
-        ("human", "{question}"),
-    ]
-)
-
-# A chain that takes the prompt and processes it through the agent (LLM + tools)
-chain = prompt | agent_executor
-
-# Queries the LLM with full chat history using RunnableWithMessageHistory
-chain_with_history = RunnableWithMessageHistory(
-    chain,
-    lambda session_id: msgs,  # Return the previously created chat history instance
-    input_messages_key="question",
-    history_messages_key="history",
-)
-
-# Streamlit UI for the chatbot interface
-for msg in msgs.messages:
-    if msg.type in ["ai", "human"]:
-        st.chat_message(msg.type).write(msg.content)
-
-# Handling user input
-if user_input := st.chat_input():
-    # Add human message to chat history
-    msgs.add_human_message(user_input)
-    st.chat_message("human").write(user_input)
-
-    # Run the LLM agent with chat history
-    response = chain_with_history.invoke({"question": user_input})
-
-    # Add the AI's response to the chat history
-    ai_response = response["messages"][-1].content
-    msgs.add_ai_message(ai_response)
-    st.chat_message("ai").write(ai_response)
+else:
+    st.error("CalendarAPI secrets not found!")
