@@ -1,47 +1,67 @@
 import streamlit as st
 import json
 from google.oauth2 import service_account
-from googleapiclient.discovery import build
+from gcsa.google_calendar import GoogleCalendar
+from calendar_integration import authenticate_google_calendar, check_availability
+from llm_integration import process_user_input
+from datetime import datetime, timedelta
 
-# Load Google Calendar API credentials from Streamlit secrets
-if "CalendarAPI" in st.secrets:
-    calendar_api = st.secrets["CalendarAPI"]
+# Load credentials from Streamlit secrets
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["CalendarAPI"],
+    scopes=["https://www.googleapis.com/auth/calendar"]
+)
 
-    # Extract the credentials
-    type_ = calendar_api["type"]
-    project_id = calendar_api["project_id"]
-    private_key_id = calendar_api["private_key_id"]
-    private_key = calendar_api["private_key"]
-    client_email = calendar_api["client_email"]
-    client_id = calendar_api["client_id"]
-    auth_uri = calendar_api["auth_uri"]
-    token_uri = calendar_api["token_uri"]
-    auth_provider_x509_cert_url = calendar_api["auth_provider_x509_cert_url"]
-    client_x509_cert_url = calendar_api["client_x509_cert_url"]
+# Authenticate Google Calendar
+calendar_service = authenticate_google_calendar(credentials)
 
-    # Create credentials object
-    credentials = service_account.Credentials.from_service_account_info(calendar_api)
+# Streamlit app title
+st.title("Smart Meeting Scheduler with AI Integration")
 
-    # Build the Google Calendar API service
-    service = build('calendar', 'v3', credentials=credentials)
+# Display events from Google Calendar
+calendar_id = "nikki617@bu.edu"  # Your calendar ID
+st.write("Events from your Google Calendar:")
 
-    st.title("Google Calendar Integration")
+try:
+    # Fetch all events for the next 7 days
+    now = datetime.utcnow()
+    start_date = now.isoformat() + 'Z'  # Current time in UTC
+    end_date = (now + timedelta(days=7)).isoformat() + 'Z'  # End next week
 
-    # Example functionality: list upcoming events
-    st.subheader("Upcoming Events")
+    events = check_availability(calendar_service, start_date, end_date)
 
-    # Call the Calendar API
-    now = '2024-10-01T00:00:00Z'  # Replace with your desired time
-    events_result = service.events().list(calendarId='primary', timeMin=now,
-                                          maxResults=10, singleEvents=True,
-                                          orderBy='startTime').execute()
-    events = events_result.get('items', [])
+    if events:
+        for event in events:
+            st.write(f"**Event:** {event['summary']}")
+            st.write(f"**Start:** {event['start'].get('dateTime', event['start'].get('date'))}")
+            st.write(f"**End:** {event['end'].get('dateTime', event['end'].get('date'))}")
+            st.write("---")
+    else:
+        st.write("No events found.")
+except Exception as e:
+    st.error(f"An error occurred while fetching events: {e}")
 
-    if not events:
-        st.write('No upcoming events found.')
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        st.write(f"{start}: {event['summary']}")
+# User input
+user_input = st.text_input("You:", "")
 
-else:
-    st.error("CalendarAPI secrets not found!")
+if st.button("Send"):
+    if user_input:
+        response = process_user_input(user_input)  # Process user input through OpenAI
+
+        if "events" in user_input.lower():  # Check for events request
+            try:
+                events = check_availability(calendar_service, start_date, end_date)  # Use updated function
+                if events:
+                    event_list = [
+                        f"{event['summary']} from {event['start'].get('dateTime', event['start'].get('date'))} to {event['end'].get('dateTime', event['end'].get('date'))}" 
+                        for event in events
+                    ]
+                    response += "\nYou have the following events:\n" + "\n".join(event_list)
+                else:
+                    response += "\nYou have no events for the next week!"
+            except Exception as e:
+                response += f"\nAn error occurred while fetching your events: {e}"
+
+        st.write("Chatbot:", response)
+    else:
+        st.write("Please enter a message.")
