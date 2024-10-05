@@ -109,7 +109,7 @@ st.sidebar.title("Chat")
 # Embed the Google Calendar
 calendar_embed_code = """
 <iframe src="https://calendar.google.com/calendar/embed?src=nikki617%40bu.edu&ctz=Europe%2FBerlin" 
-        style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>
+        style="border: 0" width="1000" height="600" frameborder="0" scrolling="no"></iframe>
 """
 st.components.v1.html(calendar_embed_code, height=650)
 
