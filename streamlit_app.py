@@ -31,7 +31,7 @@ if st.button("Submit"):
             try:
                 events = check_availability(calendar_service, start_date, end_date)
                 if events:
-                    event_list = [f"{event['summary']} from {event['start'].get('dateTime')} to {event['end'].get('dateTime')}" for event in events]
+                    event_list = [f"{event.summary} from {event.start} to {event.end}" for event in events]
                     response = "\nYou have the following events scheduled:\n" + "\n".join(event_list)
                 else:
                     response = "\nYou're free for the next week!"
