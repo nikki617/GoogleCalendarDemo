@@ -25,14 +25,16 @@ credentials = service_account.Credentials.from_service_account_info(calendar_cre
 scoped_credentials = credentials.with_scopes(['https://www.googleapis.com/auth/calendar.readonly'])
 service = build('calendar', 'v3', credentials=scoped_credentials)
 
-# Function to get OpenAI response
+# Function to get OpenAI response (using Chat API)
 def get_openai_response(prompt):
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
-        max_tokens=50
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ]
     )
-    return response.choices[0].text.strip()
+    return response['choices'][0]['message']['content'].strip()
 
 # Function to list Google Calendar events
 def list_calendar_events(calendar_id='primary'):
