@@ -24,6 +24,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI
 from langchain.callbacks.tracers import ConsoleCallbackHandler
 from pydantic import BaseModel, Field
+import pandas as pd
 
 # Connect to Google Calendar through an API
 credentials = service_account.Credentials.from_service_account_info(
@@ -138,13 +139,50 @@ with col1:
 with col2:
     st.subheader("Your Calendar")
     
-    # Fetch and display events for the current week
-    events = get_events(datetime.now(), datetime.now() + timedelta(days=7))
+    # Create a DataFrame for the calendar
+    now = datetime.now()
+    month = now.month
+    year = now.year
     
-    if events:
-        for event in events:
-            st.write(f"**{event.summary}**")
-            st.write(f"Start: {event.start}\nEnd: {event.end}")
-    else:
-        st.write("No events scheduled for this week.")
+    # Get events for the current month
+    start_date = datetime(year, month, 1)
+    end_date = (start_date + pd.DateOffset(months=1)).replace(day=1)
+    events = get_events(start_date, end_date)
 
+    # Create a dictionary to hold events by day
+    events_by_day = {}
+    for event in events:
+        event_day = event.start.day
+        events_by_day[event_day] = event.summary
+
+    # Create the calendar grid
+    days_in_month = (end_date - start_date).days
+    start_weekday = start_date.weekday()  # Monday is 0
+    calendar_grid = [["" for _ in range(7)] for _ in range(6)]  # 6 rows for max 6 weeks
+
+    # Fill the calendar grid
+    day = 1
+    for week in range(6):
+        for weekday in range(7):
+            if week == 0 and weekday < start_weekday:
+                calendar_grid[week][weekday] = ""
+            elif day <= days_in_month:
+                calendar_grid[week][weekday] = day
+                day += 1
+
+    # Display the calendar
+    st.markdown("<style>table {width: 100%; text-align: center;}</style>", unsafe_allow_html=True)
+    st.write("<table>", unsafe_allow_html=True)
+    st.write("<tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>", unsafe_allow_html=True)
+
+    for week in calendar_grid:
+        st.write("<tr>", unsafe_allow_html=True)
+        for day in week:
+            if day != "":
+                event_name = events_by_day.get(day, "")
+                st.write(f"<td style='background-color: lightgreen;'>" + str(day) + ("<br>" + event_name if event_name else "") + "</td>", unsafe_allow_html=True)
+            else:
+                st.write("<td></td>", unsafe_allow_html=True)
+        st.write("</tr>", unsafe_allow_html=True)
+    
+    st.write("</table>", unsafe_allow_html=True)
