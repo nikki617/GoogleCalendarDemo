@@ -1,16 +1,10 @@
 # llm_integration.py
 
-# langchain imports
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.agents.react.agent import create_react_agent
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
-from langchain.callbacks.tracers import ConsoleCallbackHandler
 
 class LangChainManager:
     def __init__(self, api_key):
