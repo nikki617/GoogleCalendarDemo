@@ -46,7 +46,14 @@ if entered_prompt := st.chat_input("What does my day look like?"):
     # Invoke the agent with the entered prompt and the date range
     response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime})
 
-    # Add AI response
-    response = response["output"]
-    st.chat_message("ai").write(response)
-    msgs.add_ai_message(response)
+    # Check the response structure
+    if "output" in response:
+        output = response["output"]
+        st.chat_message("ai").write(output)
+        msgs.add_ai_message(output)
+    else:
+        # Handle the case where 'output' is not in the response
+        error_message = "Sorry, I couldn't process your request. Please try again."
+        st.chat_message("ai").write(error_message)
+        msgs.add_ai_message(error_message)
+
