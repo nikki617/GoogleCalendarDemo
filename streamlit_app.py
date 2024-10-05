@@ -41,9 +41,9 @@ import streamlit as st
 
 # Get the credentials from Secrets.
 credentials = service_account.Credentials.from_service_account_info(
-        json.loads(st.secrets["CalendarAPI"]),
-        scopes=["https://www.googleapis.com/auth/calendar"]
-    )
+    st.secrets["CalendarAPI"],  # st.secrets is already a dict, so use directly
+    scopes=["https://www.googleapis.com/auth/calendar"]
+)
 
 # Create the GoogleCalendar.
 calendar = GoogleCalendar(credentials=credentials)
@@ -133,8 +133,8 @@ if len(msgs.messages) == 0:
 
 # Add the rest of the conversation
 for msg in msgs.messages:
-        if (msg.type in ["ai", "human"]):
-                st.chat_message(msg.type).write(msg.content)
+    if msg.type in ["ai", "human"]:
+        st.chat_message(msg.type).write(msg.content)
 
 # When the user enters a new prompt
 if entered_prompt := st.chat_input("What does my day look like?"):
@@ -142,7 +142,7 @@ if entered_prompt := st.chat_input("What does my day look like?"):
     st.chat_message("human").write(entered_prompt)
     msgs.add_user_message(entered_prompt)
 
-    # get a response from the agent
+    # Get a response from the agent
     st_callback = StreamlitCallbackHandler(st.container())
     response = agent.invoke({"input": entered_prompt}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
