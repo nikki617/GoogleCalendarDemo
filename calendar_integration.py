@@ -1,5 +1,5 @@
 import os
-from google.oauth2.service_account import Credentials
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
@@ -8,13 +8,13 @@ class CalendarIntegration:
     def __init__(self):
         self.credentials = self.get_credentials()
         self.service = build('calendar', 'v3', credentials=self.credentials)
-        self.calendar_id = os.getenv('CALENDAR_ID')  # Use this if you have set it in your environment variables
-        # If using Streamlit secrets, you might want to set it like this instead:
-        self.calendar_id = os.environ.get("CALENDAR_ID")  # Replace with the method you're using
+        self.calendar_id = os.getenv('CALENDAR_ID')
+        self.timezone = 'UTC'  # Adjust as needed
 
     def get_credentials(self):
-        # Load credentials from Streamlit secrets
-        creds = Credentials.from_service_account_info(st.secrets['CalendarAPI'])
+        # Use from_service_account_info to get credentials from Streamlit secrets
+        service_account_info = st.secrets['CalendarAPI']
+        creds = service_account.Credentials.from_service_account_info(service_account_info)
         return creds
 
     def get_calendar_events(self, start_range, end_range):
