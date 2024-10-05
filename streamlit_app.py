@@ -76,7 +76,7 @@ add_event_tool = StructuredTool(
     description="Useful for adding an event with a start date, event name, and length in hours."
 )
 
-tools = [add_event_tool]  # Removed the list_event_tool to hide it from the UI
+tools = [list_event_tool, add_event_tool]
 
 # Create the LLM
 llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
@@ -102,6 +102,8 @@ msgs = StreamlitChatMessageHistory(key="special_app_key")
 
 # Streamlit app layout
 st.set_page_config(page_title="Google Calendar Assistant", layout="wide")
+# Removed the title to clean up UI
+# st.title("Google Calendar Assistant")
 st.markdown(
     """
     <style>
