@@ -1,52 +1,31 @@
-# llm_integration.py
+# langchain_utils.py
 
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain.agents.react.agent import create_react_agent
-from langchain_openai import ChatOpenAI
+# langchain imports
+from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import StructuredTool
-from pydantic import BaseModel, Field
-from calendar_integration import get_events, add_event, GetEventArgs  # Import GetEventArgs
-from datetime import datetime  # Ensure this is imported too
+from langchain.agents.react.agent import create_react_agent
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.tools import Tool, StructuredTool
+from langchain_openai import ChatOpenAI
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain_community.chat_message_histories import StreamlitChatMessageHistory
+from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
+from langchain.callbacks.tracers import ConsoleCallbackHandler
 
-# Create the LLM
-llm = ChatOpenAI(api_key="YOUR_OPENAI_API_KEY", temperature=0.1)
+class LangChainManager:
+    def __init__(self, api_key):
+        self.llm = ChatOpenAI(api_key=api_key, temperature=0.1)
+        self.prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "You are a helpful Google Calendar assistant"),
+                ("human", "{input}"),
+                ("placeholder", "{agent_scratchpad}"),
+            ]
+        )
 
-# Tool for getting events
-get_event_tool = StructuredTool(
-    name="GetEvents",
-    func=get_events,
-    args_schema=GetEventArgs,  # Ensure GetEventArgs is used here
-    description="Useful for getting the list of events from the user's calendar."
-)
+    def create_agent(self, tools):
+        agent = create_tool_calling_agent(self.llm, tools, self.prompt)
+        return AgentExecutor(agent=agent, tools=tools)
 
-# Tool for adding events
-class AddEventArgs(BaseModel):
-    start_date_time: datetime = Field(description="start date and time of event")
-    length_hours: int = Field(description="length of event")
-    event_name: str = Field(description="name of the event")
-
-add_event_tool = StructuredTool(
-    name="AddEvent",
-    func=add_event,
-    args_schema=AddEventArgs,
-    description="Useful for adding an event with a start date, event name, and length in hours."
-)
-
-# Function to get all tools
-def get_tools():
-    return [get_event_tool, add_event_tool]
-
-# Messages used by the chatbot
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are a helpful Google Calendar assistant"),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
-    ]
-)
-
-# Create agent
-def create_agent(tools):
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    return AgentExecutor(agent=agent, tools=tools)
+    def load_message_history(self):
+        return StreamlitChatMessageHistory(key="special_app_key")
