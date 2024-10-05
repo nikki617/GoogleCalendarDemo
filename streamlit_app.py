@@ -25,13 +25,17 @@ if st.button("Submit"):
         response = process_user_input(user_input)
 
         # Check for calendar-related requests
-        if "availability" in user_input.lower():
+        if "events" in user_input.lower() or "availability" in user_input.lower():
             start_date = (datetime.datetime.now() + datetime.timedelta(days=1)).isoformat() + 'Z'
             end_date = (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() + 'Z'
             try:
+                # Call check_availability to get events
                 events = check_availability(calendar_service, start_date, end_date)
                 if events:
-                    event_list = [f"{event.summary} from {event.start} to {event.end}" for event in events]
+                    event_list = [
+                        f"{event['summary']} from {event['start']} to {event['end']}"
+                        for event in events
+                    ]
                     response = "\nYou have the following events scheduled:\n" + "\n".join(event_list)
                 else:
                     response = "\nYou're free for the next week!"
