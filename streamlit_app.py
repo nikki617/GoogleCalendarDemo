@@ -1,7 +1,6 @@
 import streamlit as st
 import openai
 import pandas as pd
-import json
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -75,13 +74,16 @@ if st.button("List Upcoming Events"):
 # Create Event
 st.subheader("Create a New Event")
 summary = st.text_input("Event Summary")
-start_time = st.datetime_input("Start Time")
-end_time = st.datetime_input("End Time")
+start_time = st.datetime_input("Start Time", value=pd.Timestamp.now())
+end_time = st.datetime_input("End Time", value=pd.Timestamp.now() + pd.Timedelta(hours=1))
 
 if st.button("Create Event"):
     if summary and start_time and end_time:
-        result = create_event(summary, start_time.isoformat(), end_time.isoformat())
-        st.success(result)
+        if start_time < end_time:
+            result = create_event(summary, start_time.isoformat(), end_time.isoformat())
+            st.success(result)
+        else:
+            st.error("End time must be after start time.")
     else:
         st.error("Please fill in all fields.")
 
