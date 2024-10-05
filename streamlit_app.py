@@ -1,13 +1,13 @@
 # streamlit_app.py
 
 import streamlit as st
-from llm_integration import create_agent, get_tools
+from llm_integration import get_tools, create_agent
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 
-# Load tools
+# Get tools and create the agent
 tools = get_tools()
-agent = create_agent(st.secrets["openai"]["api_key"])
+agent = create_agent(tools)
 
 # Storing message history
 msgs = StreamlitChatMessageHistory(key="special_app_key")
