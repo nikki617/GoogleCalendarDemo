@@ -8,7 +8,7 @@ from google.oauth2 import service_account
 from beautiful_date import Jan, Apr, Sept, Oct
 import json
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from beautiful_date import hours
 
 # langchain imports
@@ -20,7 +20,6 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.tools import Tool, StructuredTool  # Use the Tool object directly
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain.agents import initialize_agent
 from langchain.agents import AgentType
 from langchain_community.chat_message_histories import (
     StreamlitChatMessageHistory,
@@ -152,9 +151,15 @@ if entered_prompt := st.chat_input("What does my day look like?"):
 
     # Get a response from the agent
     st_callback = StreamlitCallbackHandler(st.container())
-    response = agent.invoke({"input": entered_prompt}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
+    
+    # Specify the default date range for the current week
+    from_datetime = datetime.now()
+    to_datetime = datetime.now() + timedelta(days=7)
+    
+    # Invoke the agent with the entered prompt and the date range
+    response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
-    # Add AI response.
+    # Add AI response
     response = response["output"]
     st.chat_message("ai").write(response)
     msgs.add_ai_message(response)
