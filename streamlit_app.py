@@ -149,13 +149,13 @@ with col1:
         to_datetime = datetime.now() + timedelta(days=7)
         
         # Invoke the agent
-        response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
+        #response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
         # Only extract the necessary output and suppress detailed logs
-        #if 'output' in response:
-        #    response_output = response["output"]
-        #    st.sidebar.chat_message("ai").write(response_output)
-        #    msgs.add_ai_message(response_output)
+        if 'output' in response:
+            response_output = response["output"]
+            st.sidebar.chat_message("ai").write(response_output)
+            msgs.add_ai_message(response_output)
 
 # Right side for calendar
 with col2:
