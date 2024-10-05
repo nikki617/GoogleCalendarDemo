@@ -3,7 +3,11 @@ from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from gcsa.recurrence import Recurrence, DAILY, SU, SA
 from google.oauth2 import service_account
-from beautiful_date import Jan, Apr, Sept, Oct, hours
+from beautiful_date import Jan, Apr, Sept, Oct
+import json
+import os
+from datetime import date, datetime, timedelta
+from beautiful_date import hours
 from langchain_core.runnables.utils import ConfigurableFieldSpec
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
@@ -11,17 +15,17 @@ from langchain.agents.react.agent import create_react_agent
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.tools import Tool, StructuredTool
 from langchain_openai import ChatOpenAI
-from langchain.agents import AgentExecutor
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import AgentType
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
-from langchain_core.prompts import MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI
 from langchain.callbacks.tracers import ConsoleCallbackHandler
 from pydantic import BaseModel, Field
-from datetime import date, datetime, timedelta
 
-# Connect to the Google Calendar through an API
+# Connect to Google Calendar through an API
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["CalendarAPI"],
     scopes=["https://www.googleapis.com/auth/calendar"]
@@ -70,7 +74,7 @@ add_event_tool = StructuredTool(
     description="Useful for adding an event with a start date, event name, and length in hours."
 )
 
-# List of tools
+# Update this list with the new tools
 tools = [list_event_tool, add_event_tool]
 
 # Create the LLM
@@ -85,22 +89,26 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-# Creating the agent
+# Creating the agent that will integrate the provided calendar tool with the LLM.
 agent = create_tool_calling_agent(llm, tools, prompt)
-agent = AgentExecutor(agent=agent, tools=tools)
+agent = AgentExecutor(
+    agent=agent,
+    tools=tools,
+)
 
 # Storing message history
 msgs = StreamlitChatMessageHistory(key="special_app_key")
 
-# Load the first AI message
-if len(msgs.messages) == 0:
-    msgs.add_ai_message("How may I assist you today?")
+# Layout with chat on the left and calendar on the right
+col1, col2 = st.columns([2, 1])  # Adjust the ratios as needed
 
-# Layout for chat and calendar
-col1, col2 = st.columns([2, 1])  # 2:1 ratio for chat and calendar
-
-# Chat interface in column 1
+# Chat Interface
 with col1:
+    # Load the first AI message
+    if len(msgs.messages) == 0:
+        msgs.add_ai_message("How may I assist you today?")
+
+    # Add the rest of the conversation
     for msg in msgs.messages:
         if msg.type in ["ai", "human"]:
             st.chat_message(msg.type).write(msg.content)
@@ -111,35 +119,32 @@ with col1:
         st.chat_message("human").write(entered_prompt)
         msgs.add_user_message(entered_prompt)
 
-        # Callback for Streamlit
+        # Get a response from the agent
         st_callback = StreamlitCallbackHandler(st.container())
         
         # Specify the default date range for the current week
         from_datetime = datetime.now()
         to_datetime = datetime.now() + timedelta(days=7)
-        
+
         # Invoke the agent with the entered prompt and the date range
-        response = agent.invoke(
-            {"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, 
-            {"callbacks": [st_callback, ConsoleCallbackHandler()]}
-        )
+        response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
         # Add AI response
         response = response["output"]
         st.chat_message("ai").write(response)
         msgs.add_ai_message(response)
 
-# Calendar interface in column 2
+# Calendar Interface
 with col2:
-    st.header("Your Calendar Events")
+    st.subheader("Your Calendar")
     
-    # Fetch and display events
-    events = get_events(datetime.now(), datetime.now() + timedelta(days=7))  # Adjust date range as needed
+    # Fetch and display events for the current week
+    events = get_events(datetime.now(), datetime.now() + timedelta(days=7))
+    
     if events:
         for event in events:
             st.write(f"**{event.summary}**")
-            st.write(f"Start: {event.start}")
-            st.write(f"End: {event.end}")
-            st.write("---")
+            st.write(f"Start: {event.start}\nEnd: {event.end}")
     else:
-        st.write("No events found for the next week.")
+        st.write("No events scheduled for this week.")
+
