@@ -1,30 +1,32 @@
-import streamlit as st
 from google.oauth2 import service_account
-from googleapiclient.discovery import build
+from gcsa.google_calendar import GoogleCalendar
 
-class CalendarIntegration:
-    def __init__(self):
-        self.credentials = self.get_credentials()
-        self.service = self.create_service()
+def authenticate_google_calendar(credentials):
+    return GoogleCalendar(credentials=credentials)
 
-    def get_credentials(self):
-        try:
-            service_account_info = st.secrets['CalendarAPI']
-            creds = service_account.Credentials.from_service_account_info(service_account_info)
-            return creds
-        except Exception as e:
-            st.error(f"Error loading credentials: {e}")
-            return None
+def check_availability(service, start_date, end_date):
+    events_result = service.get_events(start=start_date, end=end_date)
+    return events_result
 
-    def create_service(self):
-        try:
-            return build('calendar', 'v3', credentials=self.credentials)
-        except Exception as e:
-            st.error(f"Error creating Google Calendar service: {e}")
-            return None
+def book_event(service, start_time, end_time, summary):
+    event = {
+        'summary': summary,
+        'start': {
+            'dateTime': start_time,
+            'timeZone': 'America/New_York',
+        },
+        'end': {
+            'dateTime': end_time,
+            'timeZone': 'America/New_York',
+        },
+    }
+    return service.insert_event(body=event)
 
-    def list_events(self):
-        if self.service:
-            events_result = self.service.events().list(calendarId='primary', maxResults=10).execute()
-            return events_result.get('items', [])
-        return []
+def update_event(service, event_id, start_time, end_time):
+    event = service.get_event(event_id)
+    event['start']['dateTime'] = start_time
+    event['end']['dateTime'] = end_time
+    return service.update_event(event_id=event_id, body=event)
+
+def delete_event(service, event_id):
+    service.delete_event(event_id)
