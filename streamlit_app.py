@@ -1,7 +1,7 @@
 # streamlit_app.py
 
 import streamlit as st
-from calendar_integration import connect_calendar, get_events, add_event
+from calendar_integration import connect_calendar, get_events, add_event, GetEventArgs, AddEventArgs  # Import the argument classes
 from llm_integration import LangChainManager
 from datetime import datetime, timedelta
 
