@@ -1,4 +1,3 @@
-
 # gcsa imports
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
@@ -37,14 +36,10 @@ from pydantic import BaseModel, Field
 
 import streamlit as st
 
-
-
-
-
 ##-------------------
 ## Connecting to the Google Calendar through an API
 
-# Get the credintials from Secrets.
+# Get the credentials from Secrets.
 credentials = service_account.Credentials.from_service_account_info(
         json.loads(st.secrets["CalendarAPI"]),
         scopes=["https://www.googleapis.com/auth/calendar"]
@@ -64,7 +59,6 @@ class GetEventargs(BaseModel):
 # Define the tool 
 def get_events(from_datetime, to_datetime):
     events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
-    # print(list(events), from_datetime, to_datetime)
     return list(events)
 
 # Create a Tool object 
@@ -77,15 +71,13 @@ list_event_tool = StructuredTool(
 
 #------------
 
-#-------
 ### Event adding tool
 
-# Parameters needed to look for an event
+# Parameters needed to add an event
 class AddEventargs(BaseModel):
     start_date_time: datetime = Field(description="start date and time of event")
     length_hours: int = Field(description="length of event")
     event_name: str = Field(description="name of the event")
-
 
 # Define the tool 
 def add_event(start_date_time, length_hours, event_name):
@@ -101,41 +93,36 @@ add_event_tool = StructuredTool(
     name="AddEvent",
     func=add_event,
     args_schema=AddEventargs,
-    description="Useful for adding an event with a start date, event name, and length in hours the list of events. Calls get_events to make sure if the new event has been deleted."
+    description="Useful for adding an event with a start date, event name, and length in hours."
 )
 
 #------------
 
-##Update this list with the new tools
+## Update this list with the new tools
 tools = [list_event_tool, add_event_tool]
 
 #-----------
 
-
 # Create the LLM
-llm = ChatOpenAI(api_key=st.secrets["openai"], temperature=0.1)
+llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
 
 # Messages used by the chatbot
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", "You are a helpful Google Calendar assistant"),
         ("human", "{input}"),
-        # Placeholders fill up a **list** of messages
         ("placeholder", "{agent_scratchpad}"),
     ]
 )
-
 
 # Creating the agent that will integrate the provided calendar tool with the LLM.
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent = AgentExecutor(
     agent=agent, 
     tools=tools,
-    # verbose=True,
 )
 
 #--------------------
-
 
 # Storing message history
 msgs = StreamlitChatMessageHistory(key="special_app_key")
@@ -163,4 +150,3 @@ if entered_prompt := st.chat_input("What does my day look like?"):
     response = response["output"]
     st.chat_message("ai").write(response)
     msgs.add_ai_message(response)
-    
