@@ -10,14 +10,18 @@ def check_availability(service, start_date, end_date):
     try:
         # Fetch events from the calendar within the provided range
         events = service.get_events(time_min=start_date, time_max=end_date)
-        return [
-            {
+        event_list = []
+        for event in events:
+            # Convert event start and end to datetime if they are strings
+            start = event.start if isinstance(event.start, datetime) else datetime.fromisoformat(event.start)
+            end = event.end if isinstance(event.end, datetime) else datetime.fromisoformat(event.end)
+            
+            event_list.append({
                 "summary": event.summary,
-                "start": event.start.isoformat(),
-                "end": event.end.isoformat()
-            }
-            for event in events
-        ]
+                "start": start.isoformat(),
+                "end": end.isoformat()
+            })
+        return event_list
     except Exception as e:
         raise Exception(f"Error fetching events: {e}")
 
