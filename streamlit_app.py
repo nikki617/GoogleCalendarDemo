@@ -102,29 +102,6 @@ msgs = StreamlitChatMessageHistory(key="special_app_key")
 
 # Streamlit app layout
 st.set_page_config(page_title="Google Calendar Assistant", layout="wide")
-# Removed the title to clean up UI
-# st.title("Google Calendar Assistant")
-st.markdown(
-    """
-    <style>
-    .sidebar .sidebar-content {
-        padding: 1rem;
-    }
-    .chat-message {
-        padding: 10px;
-        border-radius: 5px;
-    }
-    .human {
-        background-color: #d1e7dd;
-        margin-bottom: 5px;
-    }
-    .ai {
-        background-color: #f8d7da;
-        margin-bottom: 5px;
-    }
-    </style>
-    """, unsafe_allow_html=True
-)
 
 # Layout for chat and calendar
 col1, col2 = st.columns([1, 2])
@@ -151,10 +128,10 @@ with col1:
         # Invoke the agent
         response = agent.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
-        # Only extract the necessary output and suppress detailed logs
+        # Display only the AI's response, suppressing the details
         if 'output' in response:
             response_output = response["output"]
-            st.sidebar.chat_message("ai").write(response_output)
+            st.sidebar.chat_message("ai").write(response_output)  # Show only AI response
             msgs.add_ai_message(response_output)
 
 # Right side for calendar
@@ -165,4 +142,3 @@ with col2:
             style="border: 0" width="100%" height="650" frameborder="0" scrolling="no"></iframe>
     """
     st.components.v1.html(calendar_embed_code, height=650)
-
