@@ -5,7 +5,7 @@ from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from google.oauth2 import service_account
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timedelta
 import streamlit as st
 
 # Connecting to the Google Calendar through an API
@@ -38,10 +38,26 @@ class AddEventArgs(BaseModel):
     event_name: str = Field(description="name of the event")
 
 # Define the tool for adding events 
+# calendar_integration.py
+
 def add_event(calendar, start_date_time, length_hours, event_name):
-    current_year = datetime.now().year
-    start_date_time = start_date_time.replace(year=current_year)
-    start = start_date_time
-    end = start + length_hours * 3600  # hours in seconds
-    event = Event(event_name, start=start, end=end)
-    return calendar.add_event(event, calendar_id="nikki617@bu.edu")
+    # Convert start_date_time to a datetime object
+    start = datetime.fromisoformat(start_date_time.replace("Z", "+00:00"))  # Ensure proper UTC handling
+    end = start + timedelta(hours=length_hours)  # Use timedelta for adding hours
+
+    # Create event data for Google Calendar
+    event = {
+        'summary': event_name,
+        'start': {
+            'dateTime': start.isoformat(),
+            'timeZone': 'UTC',  # Set your desired timezone
+        },
+        'end': {
+            'dateTime': end.isoformat(),
+            'timeZone': 'UTC',
+        },
+    }
+
+    # Insert event into Google Calendar
+    event_result = calendar.events().insert(calendarId='nikki617@bu.edu', body=event).execute()
+    return event_result
