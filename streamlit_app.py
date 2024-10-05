@@ -1,6 +1,7 @@
 import streamlit as st
 import openai
 import pandas as pd
+from datetime import datetime, timedelta
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -31,7 +32,7 @@ service = build('calendar', 'v3', credentials=credentials)
 
 # Function to list upcoming events
 def list_events():
-    now = '2024-10-05T00:00:00Z'  # Current time
+    now = datetime.utcnow().isoformat() + 'Z'  # Current time
     events_result = service.events().list(calendarId='primary', timeMin=now,
                                           maxResults=10, singleEvents=True,
                                           orderBy='startTime').execute()
@@ -74,13 +75,21 @@ if st.button("List Upcoming Events"):
 # Create Event
 st.subheader("Create a New Event")
 summary = st.text_input("Event Summary")
-start_time = st.datetime_input("Start Time", value=pd.Timestamp.now())
-end_time = st.datetime_input("End Time", value=pd.Timestamp.now() + pd.Timedelta(hours=1))
+
+# Set default datetime values for inputs
+current_time = datetime.now()
+start_time = st.date_input("Start Date", current_time.date())
+start_hour = st.time_input("Start Time", current_time.time())
+end_time = st.time_input("End Time", (current_time + timedelta(hours=1)).time())
+
+# Combine date and time into a single datetime object
+start_datetime = datetime.combine(start_time, start_hour)
+end_datetime = datetime.combine(start_time, end_time)
 
 if st.button("Create Event"):
-    if summary and start_time and end_time:
-        if start_time < end_time:
-            result = create_event(summary, start_time.isoformat(), end_time.isoformat())
+    if summary and start_datetime and end_datetime:
+        if start_datetime < end_datetime:
+            result = create_event(summary, start_datetime.isoformat(), end_datetime.isoformat())
             st.success(result)
         else:
             st.error("End time must be after start time.")
