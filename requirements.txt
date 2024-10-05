@@ -1,10 +1,13 @@
 google-auth-httplib2
 pytz
-streamlit
 google-auth
 google-auth-oauthlib
 google-api-python-client
 gcsa
-langchain
-langchain-community
 openai
+streamlit
+langchain
+langchain-openai
+langchain-core
+langchain-community
+
