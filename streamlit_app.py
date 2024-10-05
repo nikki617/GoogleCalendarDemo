@@ -58,21 +58,7 @@ class GetEventargs(BaseModel):
 
 # Define the tool 
 def get_events(from_datetime, to_datetime):
-    events = []
-    page_token = None
-    while True:
-        events_page = calendar.get_events(
-            calendar_id="nikki617@bu.edu", 
-            time_min=from_datetime, 
-            time_max=to_datetime, 
-            page_token=page_token
-        )
-        events.extend(events_page)
-        page_token = events_page.next_page_token
-        st.write(f"Retrieved {len(events_page)} events in this page")
-        if not page_token:
-            break
-    st.write(f"Total events retrieved: {len(events)}")
+    events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
     return list(events)
 
 # Create a Tool object 
