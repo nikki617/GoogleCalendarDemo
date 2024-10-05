@@ -1,7 +1,6 @@
 import streamlit as st
 import datetime
 from google.oauth2 import service_account
-from openai_decorator import openaifunc, get_openai_funcs
 from calendar_integration import authenticate_google_calendar, check_availability, book_event
 from llm_integration import process_user_input
 
@@ -22,20 +21,18 @@ user_input = st.text_input("Ask me anything about your calendar:", "")
 # Handle button click
 if st.button("Submit"):
     if user_input:
+        # Process the user input using the OpenAI model
         response = process_user_input(user_input)
 
         # Check for calendar-related requests
-        if "events" in user_input.lower() or "availability" in user_input.lower():
+        if "availability" in user_input.lower():
             start_date = (datetime.datetime.now() + datetime.timedelta(days=1)).isoformat() + 'Z'
             end_date = (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() + 'Z'
             try:
-                # Call check_availability to get events
+                # Check for calendar availability
                 events = check_availability(calendar_service, start_date, end_date)
                 if events:
-                    event_list = [
-                        f"{event['summary']} from {event['start']} to {event['end']}"
-                        for event in events
-                    ]
+                    event_list = [f"{event['summary']} from {event['start'].get('dateTime')} to {event['end'].get('dateTime')}" for event in events]
                     response = "\nYou have the following events scheduled:\n" + "\n".join(event_list)
                 else:
                     response = "\nYou're free for the next week!"
