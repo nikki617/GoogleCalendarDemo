@@ -1,116 +1,103 @@
-# gcsa imports
-from gcsa.event import Event
-from gcsa.google_calendar import GoogleCalendar
-from google.oauth2 import service_account
-
-# misc imports
-from pydantic import BaseModel, Field
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain.agents import StructuredTool
-from langchain_openai import ChatOpenAI
-from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 import streamlit as st
+import openai
+import pandas as pd
 import json
-from datetime import datetime
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
-# Connecting to the Google Calendar through an API
-# Load Google Calendar credentials from Streamlit secrets
-google_calendar_credentials = {
-    "type": st.secrets["CalendarAPI"]["type"],
-    "project_id": st.secrets["CalendarAPI"]["project_id"],
-    "private_key_id": st.secrets["CalendarAPI"]["private_key_id"],
-    "private_key": st.secrets["CalendarAPI"]["private_key"].replace("\\n", "\n"),
-    "client_email": st.secrets["CalendarAPI"]["client_email"],
-    "client_id": st.secrets["CalendarAPI"]["client_id"],
-    "auth_uri": st.secrets["CalendarAPI"]["auth_uri"],
-    "token_uri": st.secrets["CalendarAPI"]["token_uri"],
-    "auth_provider_x509_cert_url": st.secrets["CalendarAPI"]["auth_provider_x509_cert_url"],
-    "client_x509_cert_url": st.secrets["CalendarAPI"]["client_x509_cert_url"],
-}
+# Load secrets
+secrets = st.secrets
 
+# OpenAI API Key
+openai.api_key = secrets["openai"]["api_key"]
+
+# Google Calendar API credentials
 credentials = service_account.Credentials.from_service_account_info(
-    google_calendar_credentials,
-    scopes=["https://www.googleapis.com/auth/calendar"]
+    {
+        "type": secrets["CalendarAPI"]["type"],
+        "project_id": secrets["CalendarAPI"]["project_id"],
+        "private_key_id": secrets["CalendarAPI"]["private_key_id"],
+        "private_key": secrets["CalendarAPI"]["private_key"].replace('\\n', '\n'),  # Ensure newlines are correct
+        "client_email": secrets["CalendarAPI"]["client_email"],
+        "client_id": secrets["CalendarAPI"]["client_id"],
+        "auth_uri": secrets["CalendarAPI"]["auth_uri"],
+        "token_uri": secrets["CalendarAPI"]["token_uri"],
+        "auth_provider_x509_cert_url": secrets["CalendarAPI"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": secrets["CalendarAPI"]["client_x509_cert_url"],
+    }
 )
 
-# Create the Google Calendar instance
-calendar = GoogleCalendar(credentials=credentials)
+# Build the Google Calendar API service
+service = build('calendar', 'v3', credentials=credentials)
 
-# Event listing tool
-class GetEventargs(BaseModel):
-    from_datetime: datetime = Field(description="beginning of date range to retrieve events")
-    to_datetime: datetime = Field(description="end of date range to retrieve events")
+# Function to list upcoming events
+def list_events():
+    now = '2024-10-05T00:00:00Z'  # Current time
+    events_result = service.events().list(calendarId='primary', timeMin=now,
+                                          maxResults=10, singleEvents=True,
+                                          orderBy='startTime').execute()
+    events = events_result.get('items', [])
+    
+    if not events:
+        return "No upcoming events found."
+    
+    event_data = []
+    for event in events:
+        start = event['start'].get('dateTime', event['start'].get('date'))
+        event_data.append({"summary": event['summary'], "start": start})
 
-def get_events(from_datetime, to_datetime):
-    events = calendar.get_events(calendar_id="mndhamod@gmail.com", time_min=from_datetime, time_max=to_datetime)
-    return list(events)
+    return pd.DataFrame(event_data)
 
-list_event_tool = StructuredTool(
-    name="GetEvents",
-    func=get_events,
-    args_schema=GetEventargs,
-    description="Useful for getting the list of events from the user's calendar."
-)
+# Function to create an event
+def create_event(summary, start_time, end_time):
+    event = {
+        'summary': summary,
+        'start': {
+            'dateTime': start_time,
+            'timeZone': 'UTC',
+        },
+        'end': {
+            'dateTime': end_time,
+            'timeZone': 'UTC',
+        },
+    }
+    event = service.events().insert(calendarId='primary', body=event).execute()
+    return f"Event created: {event.get('htmlLink')}"
 
-# Event adding tool
-class AddEventargs(BaseModel):
-    start_date_time: datetime = Field(description="start date and time of event")
-    length_hours: int = Field(description="length of event in hours")
-    event_name: str = Field(description="name of the event")
+# Streamlit UI
+st.title("Smart Meeting Scheduler with AI Integration")
 
-def add_event(start_date_time, length_hours, event_name):
-    start = start_date_time
-    end = start + length_hours * 3600  # Convert hours to seconds
-    event = Event(event_name, start=start, end=end)
-    return calendar.add_event(event, calendar_id="mndhamod@gmail.com")
+# List Events
+if st.button("List Upcoming Events"):
+    events_df = list_events()
+    st.write(events_df)
 
-add_event_tool = StructuredTool(
-    name="AddEvent",
-    func=add_event,
-    args_schema=AddEventargs,
-    description="Useful for adding an event with a start date, event name, and length in hours."
-)
+# Create Event
+st.subheader("Create a New Event")
+summary = st.text_input("Event Summary")
+start_time = st.datetime_input("Start Time")
+end_time = st.datetime_input("End Time")
 
-# Create the LLM
-llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
+if st.button("Create Event"):
+    if summary and start_time and end_time:
+        result = create_event(summary, start_time.isoformat(), end_time.isoformat())
+        st.success(result)
+    else:
+        st.error("Please fill in all fields.")
 
-# Messages used by the chatbot
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are a helpful Google Calendar assistant"),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
-    ]
-)
+# ChatGPT Integration
+st.subheader("Ask a Question to AI")
+user_query = st.text_input("Your question here...")
 
-# Create the agent that will integrate the provided calendar tool with the LLM
-agent = create_tool_calling_agent(llm, [list_event_tool, add_event_tool], prompt)
-agent = AgentExecutor(agent=agent, tools=[list_event_tool, add_event_tool])
-
-# Storing message history
-msgs = StreamlitChatMessageHistory(key="special_app_key")
-
-# Load the first AI message
-if len(msgs.messages) == 0:
-    msgs.add_ai_message("How may I assist you today?")
-
-# Add the rest of the conversation
-for msg in msgs.messages:
-    if (msg.type in ["ai", "human"]):
-        st.chat_message(msg.type).write(msg.content)
-
-# When the user enters a new prompt
-if entered_prompt := st.chat_input("What does my day look like?"):
-    st.chat_message("human").write(entered_prompt)
-    msgs.add_user_message(entered_prompt)
-
-    # Get a response from the agent
-    st_callback = StreamlitCallbackHandler(st.container())
-    response = agent.invoke({"input": entered_prompt}, {"callbacks": [st_callback]})
-
-    # Add AI response
-    response = response["output"]
-    st.chat_message("ai").write(response)
-    msgs.add_ai_message(response)
+if st.button("Get AI Response"):
+    if user_query:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "user", "content": user_query}
+            ]
+        )
+        ai_response = response['choices'][0]['message']['content']
+        st.write(ai_response)
+    else:
+        st.error("Please enter a question.")
