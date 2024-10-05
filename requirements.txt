@@ -5,3 +5,4 @@ langchain_openai
 langchain
 langchain_community
 langgraph
+pandas
