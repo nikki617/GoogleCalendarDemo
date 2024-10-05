@@ -6,19 +6,19 @@ from calendar_integration import authenticate_google_calendar, check_availabilit
 from llm_integration import process_user_input
 from datetime import datetime, timedelta
 
-# Load credentials from Streamlit secrets
+# Load the credentials directly from Streamlit secrets
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["CalendarAPI"],
     scopes=["https://www.googleapis.com/auth/calendar"]
 )
 
-# Authenticate Google Calendar
+# Authenticate the Google Calendar
 calendar_service = authenticate_google_calendar(credentials)
 
 # Streamlit app title
 st.title("Smart Meeting Scheduler with AI Integration")
 
-# Display events from Google Calendar
+# Display the calendar events
 calendar_id = "nikki617@bu.edu"  # Your calendar ID
 st.write("Events from your Google Calendar:")
 
