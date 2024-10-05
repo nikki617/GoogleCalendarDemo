@@ -1,70 +1,55 @@
-import streamlit as st
 import openai
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+import streamlit as st
+from gcsa.google_calendar import GoogleCalendar
+from gcsa.event import Event
+from dateutil.parser import parse
+import datetime
+import pytz
 
-# Load the OpenAI API key from secrets
+# Access API keys from secrets
 openai.api_key = st.secrets["openai"]["api_key"]
+CREDENTIALS_PATH = st.secrets["CalendarAPI"]  # Google Calendar credentials
 
-# Load Google Calendar API credentials from secrets
-calendar_credentials = {
-    "type": st.secrets["CalendarAPI"]["type"],
-    "project_id": st.secrets["CalendarAPI"]["project_id"],
-    "private_key_id": st.secrets["CalendarAPI"]["private_key_id"],
-    "private_key": st.secrets["CalendarAPI"]["private_key"].replace('\\n', '\n'),
-    "client_email": st.secrets["CalendarAPI"]["client_email"],
-    "client_id": st.secrets["CalendarAPI"]["client_id"],
-    "auth_uri": st.secrets["CalendarAPI"]["auth_uri"],
-    "token_uri": st.secrets["CalendarAPI"]["token_uri"],
-    "auth_provider_x509_cert_url": st.secrets["CalendarAPI"]["auth_provider_x509_cert_url"],
-    "client_x509_cert_url": st.secrets["CalendarAPI"]["client_x509_cert_url"]
-}
+EMAIL = st.secrets["CalendarAPI"]["client_email"]  # Email for Google Calendar
 
-# Set up the Google Calendar API client
-credentials = service_account.Credentials.from_service_account_info(calendar_credentials)
-scoped_credentials = credentials.with_scopes(['https://www.googleapis.com/auth/calendar.readonly'])
-service = build('calendar', 'v3', credentials=scoped_credentials)
+# Define your functions and app logic
+def create_google_calendar_events(events_string: str):
+    gc = GoogleCalendar(EMAIL, credentials=CREDENTIALS_PATH)
+    created_events = []
 
-# Function to get OpenAI response (using Chat API)
-def get_openai_response(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    return response['choices'][0]['message']['content'].strip()
+    events = events_string.split(';')
+    for event_str in events:
+        event_parts = event_str.split(',')
+        
+        if len(event_parts) < 3:
+            raise ValueError("Each event string must have at least summary, start, and end details.")
+        
+        summary = event_parts[0]
+        start_str = event_parts[1]
+        end_str = event_parts[2]
+        
+        start = parse(start_str)
+        end = parse(end_str)
 
-# Function to list Google Calendar events
-def list_calendar_events(calendar_id='primary'):
-    try:
-        events_result = service.events().list(calendarId=calendar_id, maxResults=10).execute()
-        events = events_result.get('items', [])
-        if not events:
-            return "No upcoming events found."
-        event_list = []
-        for event in events:
-            event_list.append(event['summary'])
-        return event_list
-    except Exception as e:
-        return f"An error occurred: {str(e)}"
+        event = Event(summary, start=start, end=end)
+        created_event = gc.add_event(event)
+        created_events.append(created_event)
+        
+    return created_events
 
-# Streamlit app layout
-st.title("AI-Powered Smart Meeting Scheduler")
+def fetch_google_calendar_events(start_time, end_time, query=None, single_events=False):
+    start_time = parse(start_time)
+    end_time = parse(end_time)
+    
+    gc = GoogleCalendar(EMAIL, credentials=CREDENTIALS_PATH)
+    events = list(gc.get_events(time_min=start_time, time_max=end_time, query=query, single_events=single_events))
+    
+    return [{
+        "event_id": event.event_id,
+        "summary": event.summary,
+        "start": str(event.start),
+        "end": str(event.end),
+        "description": event.description
+    } for event in events]
 
-# Input prompt for OpenAI
-prompt = st.text_input("Ask me anything about your calendar:")
-if prompt:
-    response = get_openai_response(prompt)
-    st.write(f"AI Response: {response}")
-
-# Show calendar events
-if st.button('Show me all events'):
-    events = list_calendar_events()
-    if isinstance(events, list):
-        st.write("Upcoming events:")
-        for event in events:
-            st.write(f"- {event}")
-    else:
-        st.write(events)  # Display any error messages or no events message
+# Main logic for scheduling (same as before)
