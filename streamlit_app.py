@@ -2,26 +2,42 @@
 
 import streamlit as st
 from datetime import datetime, timedelta
-from llm_integration import create_agent
-from beautiful_date import hours
+from llm_integration import create_agent, create_llm, get_message_history
+from calendar_integration import tools  # Ensure you import your tools here
+from langchain_core.prompts import ChatPromptTemplate
 
-# Initialize the agent
-agent = create_agent()
+# Create the LLM
+llm = create_llm(st.secrets["openai"]["api_key"])
 
-# Storing message history
-msgs = st.session_state.get("chat_history", [])
-if not msgs:
-    msgs.append({"type": "ai", "content": "How may I assist you today?"})
+# Creating the prompt
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "You are a helpful Google Calendar assistant"),
+        ("human", "{input}"),
+        ("placeholder", "{agent_scratchpad}"),
+    ]
+)
 
-# Load the conversation
-for msg in msgs:
-    st.chat_message(msg["type"]).write(msg["content"])
+# Create the agent with the required arguments
+agent = create_agent(llm, tools, prompt)
+
+# Initialize message history
+msgs = get_message_history()
+
+# Load the first AI message
+if len(msgs.messages) == 0:
+    msgs.add_ai_message("How may I assist you today?")
+
+# Add the rest of the conversation
+for msg in msgs.messages:
+    if msg.type in ["ai", "human"]:
+        st.chat_message(msg.type).write(msg.content)
 
 # When the user enters a new prompt
 if entered_prompt := st.chat_input("What does my day look like?"):
     # Add human message
     st.chat_message("human").write(entered_prompt)
-    msgs.append({"type": "human", "content": entered_prompt})
+    msgs.add_user_message(entered_prompt)
 
     # Specify the default date range for the current week
     from_datetime = datetime.now()
@@ -33,7 +49,4 @@ if entered_prompt := st.chat_input("What does my day look like?"):
     # Add AI response
     response = response["output"]
     st.chat_message("ai").write(response)
-    msgs.append({"type": "ai", "content": response})
-
-    # Store the updated message history in session state
-    st.session_state.chat_history = msgs
+    msgs.add_ai_message(response)
