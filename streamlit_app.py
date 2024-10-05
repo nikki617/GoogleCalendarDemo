@@ -13,6 +13,7 @@ from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
+from pydantic import BaseModel, Field
 
 import streamlit as st
 
@@ -32,13 +33,12 @@ calendar = GoogleCalendar(credentials=credentials)
 ### Event listing tool
 
 # Parameters needed to look for an event
-class GetEventargs:
-    def __init__(self, from_datetime: datetime, to_datetime: datetime):
-        self.from_datetime = from_datetime
-        self.to_datetime = to_datetime
+class GetEventargs(BaseModel):
+    from_datetime: datetime = Field(description="beginning of date range to retrieve events")
+    to_datetime: datetime = Field(description="end of date range to retrieve events")
 
 # Define the tool 
-def get_events(from_datetime, to_datetime):
+def get_events(from_datetime: datetime, to_datetime: datetime):
     events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
     return list(events)
 
@@ -46,7 +46,7 @@ def get_events(from_datetime, to_datetime):
 list_event_tool = StructuredTool(
     name="GetEvents",
     func=get_events,
-    args_schema=GetEventargs,
+    args_schema=GetEventargs,  # Ensure this is a Pydantic model
     description="Useful for getting the list of events from the user's calendar."
 )
 
@@ -55,14 +55,13 @@ list_event_tool = StructuredTool(
 ### Event adding tool
 
 # Parameters needed to add an event
-class AddEventargs:
-    def __init__(self, start_date_time: datetime, length_hours: int, event_name: str):
-        self.start_date_time = start_date_time
-        self.length_hours = length_hours
-        self.event_name = event_name
+class AddEventargs(BaseModel):
+    start_date_time: datetime = Field(description="start date and time of event")
+    length_hours: int = Field(description="length of event")
+    event_name: str = Field(description="name of the event")
 
 # Define the tool 
-def add_event(start_date_time, length_hours, event_name):
+def add_event(start_date_time: datetime, length_hours: int, event_name: str):
     start = start_date_time
     end = start + timedelta(hours=length_hours)
     event = Event(event_name, start=start, end=end)
@@ -72,7 +71,7 @@ def add_event(start_date_time, length_hours, event_name):
 add_event_tool = StructuredTool(
     name="AddEvent",
     func=add_event,
-    args_schema=AddEventargs,
+    args_schema=AddEventargs,  # Ensure this is a Pydantic model
     description="Useful for adding an event with a start date, event name, and length in hours."
 )
 
@@ -124,7 +123,7 @@ if entered_prompt := st.chat_input("What does my day look like?"):
     end_of_month = (start_of_month + timedelta(days=30)).replace(day=1)  # Next month
 
     # Prepare to get events
-    event_args = GetEventargs(start_of_month, end_of_month)
+    event_args = GetEventargs(from_datetime=start_of_month, to_datetime=end_of_month)
 
     # Add human message
     st.chat_message("human").write(entered_prompt)
@@ -132,7 +131,7 @@ if entered_prompt := st.chat_input("What does my day look like?"):
 
     # Get a response from the agent
     st_callback = StreamlitCallbackHandler(st.container())
-    response = agent.invoke({"input": entered_prompt}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
+    response = agent.invoke({"input": entered_prompt}, {"callbacks": [st_callback]})
 
     # Add AI response.
     response = response["output"]
