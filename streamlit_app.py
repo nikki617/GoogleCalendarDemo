@@ -15,7 +15,7 @@ if len(msgs.messages) == 0:
 # Initialize the LLM agent
 agent = create_llm_agent()
 
-# Define the layout for the app
+# Define the layout for the app with two columns
 col1, col2 = st.columns([1, 2])  # 1: Calendar Column, 2: Chat Column
 
 # Calendar Column
@@ -24,13 +24,17 @@ with col1:
     # Embed Google Calendar using iframe
     calendar_id = "nikki617@bu.edu"  # Your calendar ID
     timezone = "America/New_York"  # Set your timezone
-    iframe_code = f'<iframe src="https://calendar.google.com/calendar/embed?src={calendar_id}&ctz={timezone}" style="border: 0" width="400" height="600" frameborder="0" scrolling="no"></iframe>'
+    iframe_code = f'''
+    <iframe src="https://calendar.google.com/calendar/embed?src={calendar_id}&ctz={timezone}" 
+            style="border: 0" width="400" height="600" frameborder="0" scrolling="no"></iframe>
+    '''
     
     # Render the iframe
     st.markdown(iframe_code, unsafe_allow_html=True)
 
 # Chat Column
 with col2:
+    st.header("Chat Interface")  # Add a header for the chat section
     # Add the rest of the conversation
     for msg in msgs.messages:
         if msg.type in ["ai", "human"]:
