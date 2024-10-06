@@ -12,27 +12,43 @@ msgs = StreamlitChatMessageHistory(key="special_app_key")
 if len(msgs.messages) == 0:
     msgs.add_ai_message("How may I assist you today?")
 
-# Add the rest of the conversation
-for msg in msgs.messages:
-    if msg.type in ["ai", "human"]:
-        st.chat_message(msg.type).write(msg.content)
-
 # Initialize the LLM agent
 agent = create_llm_agent()
 
-# When the user enters a new prompt
-if entered_prompt := st.chat_input("What does my day look like?"):
-    # Add human message
-    st.chat_message("human").write(entered_prompt)
-    msgs.add_user_message(entered_prompt)
+# Define the layout for the app
+col1, col2 = st.columns([1, 2])  # 1: Calendar Column, 2: Chat Column
 
+# Calendar Column
+with col1:
+    st.header("Google Calendar")
     # Specify the default date range for the current week
     from_datetime = datetime.now()
     to_datetime = datetime.now() + timedelta(days=7)
 
-    # Get a response from the agent
-    response = invoke_agent(agent, entered_prompt, from_datetime, to_datetime)
+    # Get and display events from the calendar
+    events = get_events(from_datetime, to_datetime)
+    if events:
+        for event in events:
+            st.write(f"**{event.summary}**: {event.start} to {event.end}")
+    else:
+        st.write("No upcoming events.")
 
-    # Add AI response
-    st.chat_message("ai").write(response)
-    msgs.add_ai_message(response)
+# Chat Column
+with col2:
+    # Add the rest of the conversation
+    for msg in msgs.messages:
+        if msg.type in ["ai", "human"]:
+            st.chat_message(msg.type).write(msg.content)
+
+    # When the user enters a new prompt
+    if entered_prompt := st.chat_input("What does my day look like?"):
+        # Add human message
+        st.chat_message("human").write(entered_prompt)
+        msgs.add_user_message(entered_prompt)
+
+        # Get a response from the agent
+        response = invoke_agent(agent, entered_prompt, from_datetime, to_datetime)
+
+        # Add AI response
+        st.chat_message("ai").write(response)
+        msgs.add_ai_message(response)
