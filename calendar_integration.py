@@ -55,16 +55,23 @@ def cancel_event(event_name: str, from_datetime: datetime, to_datetime: datetime
     # Retrieve events in the given date range
     events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
     
-    # Debug: Print out the retrieved events for verification
+    print(f"Cancel Event Date Range: {from_datetime} to {to_datetime}")
     print("Retrieved Events:")
+    
+    # Print out the retrieved events for verification
     for event in events:
         print(f"- {event.summary} at {event.start} to {event.end}")
 
     # Look for the event with the matching name
     for event in events:
+        print(f"Trying to cancel event: {event_name}")
         if event.summary == event_name:
-            # If found, delete the event
-            calendar.delete_event(event, calendar_id="nikki617@bu.edu")
-            return f"Event '{event_name}' has been canceled."
+            try:
+                calendar.delete_event(event, calendar_id="nikki617@bu.edu")
+                return f"Event '{event_name}' has been canceled."
+            except Exception as e:
+                print(f"Error deleting event: {e}")
+                return f"Failed to cancel event '{event_name}'."
     
     return f"No event named '{event_name}' was found in the given date range."
+
