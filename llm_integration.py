@@ -29,7 +29,7 @@ cancel_event_tool = StructuredTool(
     name="CancelEvent",
     func=cancel_event,
     args_schema=CancelEventargs,
-    description="Useful for cancelling an event by name and date."
+    description="Useful for canceling an event with a specific name within a date range."
 )
 
 # LLM setup
