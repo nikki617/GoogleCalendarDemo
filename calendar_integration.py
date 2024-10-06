@@ -3,8 +3,8 @@ from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from google.oauth2 import service_account
 from pydantic import BaseModel, Field
-from datetime import datetime
-from langchain_core.tools import StructuredTool  # Ensure this is imported
+from datetime import datetime, timedelta
+from langchain_core.tools import StructuredTool
 import streamlit as st
 
 def setup_google_calendar_tools():
@@ -47,7 +47,7 @@ def setup_google_calendar_tools():
         current_year = datetime.now().year
         start_date_time = start_date_time.replace(year=current_year)
         start = start_date_time
-        end = start + timedelta(hours=length_hours)  # Correcting length calculation
+        end = start + timedelta(hours=length_hours)
         event = Event(event_name, start=start, end=end)
         return calendar.add_event(event, calendar_id="nikki617@bu.edu")
 
