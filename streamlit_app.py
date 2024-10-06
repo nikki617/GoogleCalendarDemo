@@ -1,16 +1,30 @@
 # Required Imports
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
+from gcsa.recurrence import Recurrence, DAILY, SU, SA
 from google.oauth2 import service_account
-from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
-import streamlit as st
-from langchain_core.tools import StructuredTool
+from beautiful_date import Jan, Apr, Sept, Oct
+import json
+import os
+from datetime import date, datetime, timedelta
+from beautiful_date import hours
+from langchain_core.runnables.utils import ConfigurableFieldSpec
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.agents.react.agent import create_react_agent
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.tools import Tool, StructuredTool
 from langchain_openai import ChatOpenAI
-from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import AgentType
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_openai import ChatOpenAI
 from langchain.callbacks.tracers import ConsoleCallbackHandler
+from pydantic import BaseModel, Field
+import streamlit as st
 
 # Google Calendar Credentials
 credentials = service_account.Credentials.from_service_account_info(
@@ -51,7 +65,7 @@ def add_event(start_date_time, length_hours, event_name):
     current_year = datetime.now().year
     start_date_time = start_date_time.replace(year=current_year)
     start = start_date_time
-    end = start + timedelta(hours=length_hours)
+    end = start + length_hours * hours
     event = Event(event_name, start=start, end=end)
     return calendar.add_event(event, calendar_id="nikki617@bu.edu")
 
@@ -89,12 +103,20 @@ msgs = StreamlitChatMessageHistory(key="special_app_key")
 # Streamlit app layout
 st.set_page_config(page_title="Google Calendar Assistant", layout="wide")
 
-# User input for the chat
-if entered_prompt := st.text_input("What does my day look like?", placeholder="Ask me about your schedule!"):
+# Layout for chat and calendar
+col1, col2 = st.columns([1, 2])
+
+# Left side for chat messages
+with col1:
+    st.sidebar.title("Chat")
+
+    # User input for the chat
+    # User input for the chat
+if entered_prompt := st.sidebar.text_input("What does my day look like?", placeholder="Ask me about your schedule!"):
     # Clear the message history for the new prompt
     msgs.clear()
 
-    st.chat_message("human").write(entered_prompt)
+    st.sidebar.chat_message("human").write(entered_prompt)
     msgs.add_user_message(entered_prompt)
 
     # Get a response from the agent
@@ -110,5 +132,15 @@ if entered_prompt := st.text_input("What does my day look like?", placeholder="A
     # Display only the AI's response, suppressing the details
     if 'output' in response:
         response_output = response["output"]
-        st.chat_message("ai").write(response_output)  # Show only AI response
+        st.sidebar.chat_message("ai").write(response_output)  # Show only AI response
         msgs.add_ai_message(response_output)
+
+
+# Right side for calendar
+with col2:
+    st.subheader("Your Calendar")
+    calendar_embed_code = """
+    <iframe src="https://calendar.google.com/calendar/embed?src=nikki617%40bu.edu&ctz=Europe%2FBerlin" 
+            style="border: 0" width="100%" height="650" frameborder="0" scrolling="no"></iframe>
+    """
+    st.components.v1.html(calendar_embed_code, height=650)
