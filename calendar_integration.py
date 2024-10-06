@@ -71,24 +71,34 @@ def cancel_event(event_name: str, from_datetime: datetime, to_datetime: datetime
 
 # Parameters needed to reschedule an event
 class RescheduleEventargs(BaseModel):
-    event_name: str = Field(description="Name of the event to be rescheduled")
-    new_start_date_time: datetime = Field(description="New start date and time of the event")
-    new_length_hours: int = Field(description="New length of the event in hours")
+    event_name: str = Field(description="name of the event to be rescheduled")
+    new_start_date_time: datetime = Field(description="new start date and time of the event")
+    length_hours: int = Field(description="length of the event")
 
-def reschedule_event(event_name: str, new_start_date_time: datetime, new_length_hours: int):
-    # Retrieve events in the given date range (for the same day)
-    events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=new_start_date_time, time_max=new_start_date_time + timedelta(hours=24))
-    
+# Define the function to reschedule an event
+def reschedule_event(event_name: str, new_start_date_time: datetime, length_hours: int):
+    current_year = datetime.now().year
+    new_start_date_time = new_start_date_time.replace(year=current_year)
+    new_end_date_time = new_start_date_time + length_hours * hours
+
     # Look for the event with the matching name
+    events = calendar.get_events(calendar_id="nikki617@bu.edu")
     for event in events:
         if event.summary == event_name:
-            # If found, reschedule the event
-            start = new_start_date_time
-            end = start + new_length_hours * hours
-            event.start = start
-            event.end = end
-            
+            # If found, update the event's start and end time
+            event.start = new_start_date_time
+            event.end = new_end_date_time
             calendar.update_event(event, calendar_id="nikki617@bu.edu")
-            return f"Event '{event_name}' has been rescheduled to {start}."
-    
-    return f"No event named '{event_name}' was found to reschedule."
+            return f"Event '{event_name}' has been rescheduled to {new_start_date_time}."
+
+    return f"No event named '{event_name}' was found."
+
+# Add the new tool for rescheduling
+from langchain_core.tools import StructuredTool
+
+reschedule_event_tool = StructuredTool(
+    name="RescheduleEvent",
+    func=reschedule_event,
+    args_schema=RescheduleEventargs,
+    description="Useful for rescheduling an event with a new start time and length."
+)
