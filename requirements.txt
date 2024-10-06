@@ -1,4 +1,5 @@
 streamlit
+streamlit-community
 gcsa
 beautiful_date
 langchain_openai
