@@ -1,5 +1,3 @@
-# llm_integration.py
-
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate
@@ -10,7 +8,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import streamlit as st
 
-from calendar_integration import get_events, add_event, GetEventargs, AddEventargs
+from calendar_integration import get_events, add_event, cancel_event, GetEventargs, AddEventargs, CancelEventargs
 
 # Create Tool objects for calendar integration
 list_event_tool = StructuredTool(
@@ -27,6 +25,13 @@ add_event_tool = StructuredTool(
     description="Useful for adding an event with a start date, event name, and length in hours."
 )
 
+cancel_event_tool = StructuredTool(
+    name="CancelEvent",
+    func=cancel_event,
+    args_schema=CancelEventargs,
+    description="Useful for canceling an event with a specific name within a date range."
+)
+
 # LLM setup
 def create_llm_agent():
     llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
@@ -39,7 +44,7 @@ def create_llm_agent():
         ]
     )
 
-    tools = [list_event_tool, add_event_tool]
+    tools = [list_event_tool, add_event_tool, cancel_event_tool]
 
     agent = create_tool_calling_agent(llm, tools, prompt)
     return AgentExecutor(agent=agent, tools=tools)
