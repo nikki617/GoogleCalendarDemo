@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 
 from llm_integration import create_llm_agent, invoke_agent
+from calendar_integration import get_events, add_event, cancel_event, GetEventargs, AddEventargs, CancelEventargs
 
 # Initialize message history
 msgs = StreamlitChatMessageHistory(key="special_app_key")
