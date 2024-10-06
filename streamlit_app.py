@@ -103,16 +103,19 @@ msgs = StreamlitChatMessageHistory(key="special_app_key")
 # Streamlit app layout
 st.set_page_config(page_title="Google Calendar Assistant", layout="wide")
 
-# Expandable sidebar for chat
-with st.sidebar.expander("Chat with Your Assistant", expanded=True):
-    st.title("Google Calendar Assistant")
-    st.markdown("Ask me about your schedule or add events!")
-    
-    if entered_prompt := st.text_input("What does my day look like?", placeholder="Ask me about your schedule!"):
+# Layout for chat and calendar
+col1, col2 = st.columns([1, 2])
+
+# Left side for chat messages
+with col1:
+    st.sidebar.title("Chat")
+
+    # User input for the chat
+    if entered_prompt := st.sidebar.text_input("What does my day look like?", placeholder="Ask me about your schedule!"):
         # Clear the message history for the new prompt
         msgs.clear()
-        
-        st.chat_message("human").write(entered_prompt)
+
+        st.sidebar.chat_message("human").write(entered_prompt)
         msgs.add_user_message(entered_prompt)
 
         # Get a response from the agent
@@ -128,11 +131,12 @@ with st.sidebar.expander("Chat with Your Assistant", expanded=True):
         # Display only the AI's response, suppressing the details
         if 'output' in response:
             response_output = response["output"]
-            st.chat_message("ai").write(response_output)  # Show only AI response
+            st.sidebar.chat_message("ai").write(response_output)  # Show only AI response
             msgs.add_ai_message(response_output)
 
+
 # Right side for calendar
-with st.container():
+with col2:
     st.subheader("Your Calendar")
     calendar_embed_code = """
     <iframe src="https://calendar.google.com/calendar/embed?src=nikki617%40bu.edu&ctz=Europe%2FBerlin" 
