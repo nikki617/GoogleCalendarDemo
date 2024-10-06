@@ -23,6 +23,7 @@ def setup_google_calendar_tools():
         to_datetime: datetime = Field(description="end of date range to retrieve events")
 
     def get_events(from_datetime, to_datetime):
+    print(f"Fetching events from {from_datetime} to {to_datetime}")
     events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
     return list(events)
 
