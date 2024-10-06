@@ -19,7 +19,6 @@ def setup_llm(tools):
 
     # Create the agent
     agent = create_tool_calling_agent(llm, tools, prompt)
-    
     agent_executor = AgentExecutor(
         agent=agent, 
         tools=tools,
