@@ -23,9 +23,9 @@ def setup_google_calendar_tools():
         to_datetime: datetime = Field(description="end of date range to retrieve events")
 
     def get_events(from_datetime, to_datetime):
-        # No need to force the current year, just use the provided date range
-        events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
-        return list(events)
+    events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
+    return list(events)
+
 
     list_event_tool = StructuredTool(
         name="GetEvents",
