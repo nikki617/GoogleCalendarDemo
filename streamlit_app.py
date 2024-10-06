@@ -46,18 +46,6 @@ with col1:
             st.sidebar.chat_message("ai").write(response_output)  # Show only AI response
             msgs.add_ai_message(response_output)
 
-# New section for deleting events
-    st.sidebar.subheader("Delete an Event")
-    event_id_to_delete = st.sidebar.text_input("Enter Event ID to delete", placeholder="Event ID")
-
-    if st.sidebar.button("Delete Event"):
-        if event_id_to_delete:
-            response = agent_executor.invoke({"input": "Delete event", "event_id": event_id_to_delete})
-            st.sidebar.chat_message("ai").write(response["output"])
-            msgs.add_ai_message(response["output"])
-        else:
-            st.sidebar.error("Please enter an event ID to delete.")
-
 # Right side for calendar
 with col2:
     st.subheader("Your Calendar")
