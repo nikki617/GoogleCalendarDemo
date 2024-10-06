@@ -4,6 +4,7 @@ from gcsa.google_calendar import GoogleCalendar
 from google.oauth2 import service_account
 from pydantic import BaseModel, Field
 from datetime import datetime
+from langchain_core.tools import StructuredTool  # Import StructuredTool
 import streamlit as st
 
 # Google Calendar Credentials
@@ -46,7 +47,7 @@ def setup_google_calendar_tools():
         current_year = datetime.now().year
         start_date_time = start_date_time.replace(year=current_year)
         start = start_date_time
-        end = start + length_hours * hours
+        end = start + length_hours * 60 * 60  # Assuming hours are in seconds
         event = Event(event_name, start=start, end=end)
         return calendar.add_event(event, calendar_id="nikki617@bu.edu")
 
