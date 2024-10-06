@@ -1,43 +1,34 @@
 # llm_integration.py
 
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel, Field
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import StructuredTool
+from langchain.callbacks.tracers import ConsoleCallbackHandler
+from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
+from pydantic import BaseModel, Field
+from datetime import datetime
+import streamlit as st
 
-# Define the argument classes for LangChain tools
-class GetEventargs(BaseModel):
-    from_datetime: datetime = Field(description="beginning of date range to retrieve events")
-    to_datetime: datetime = Field(description="end of date range to retrieve events")
+from calendar_integration import get_events, add_event, GetEventargs, AddEventargs
 
-class AddEventargs(BaseModel):
-    start_date_time: datetime = Field(description="start date and time of event")
-    length_hours: int = Field(description="length of event")
-    event_name: str = Field(description="name of the event")
+# Create Tool objects for calendar integration
+list_event_tool = StructuredTool(
+    name="GetEvents",
+    func=get_events,
+    args_schema=GetEventargs,
+    description="Useful for getting the list of events from the user's calendar."
+)
 
-# Create tools for LangChain agent
-def create_tools(calendar):
-    # Get events tool
-    list_event_tool = StructuredTool(
-        name="GetEvents",
-        func=lambda from_datetime, to_datetime: get_events(calendar, from_datetime, to_datetime),
-        args_schema=GetEventargs,
-        description="Useful for getting the list of events from the user's calendar."
-    )
-    
-    # Add event tool
-    add_event_tool = StructuredTool(
-        name="AddEvent",
-        func=lambda start_date_time, length_hours, event_name: add_event(calendar, start_date_time, length_hours, event_name),
-        args_schema=AddEventargs,
-        description="Useful for adding an event with a start date, event name, and length in hours."
-    )
+add_event_tool = StructuredTool(
+    name="AddEvent",
+    func=add_event,
+    args_schema=AddEventargs,
+    description="Useful for adding an event with a start date, event name, and length in hours."
+)
 
-    return [list_event_tool, add_event_tool]
-
-# Create the LangChain agent
-def create_llm_agent(tools):
+# LLM setup
+def create_llm_agent():
     llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
     
     prompt = ChatPromptTemplate.from_messages(
@@ -47,6 +38,17 @@ def create_llm_agent(tools):
             ("placeholder", "{agent_scratchpad}"),
         ]
     )
-    
+
+    tools = [list_event_tool, add_event_tool]
+
     agent = create_tool_calling_agent(llm, tools, prompt)
     return AgentExecutor(agent=agent, tools=tools)
+
+# Function to invoke the agent and return the response
+def invoke_agent(agent, prompt, from_datetime, to_datetime):
+    st_callback = StreamlitCallbackHandler(st.container())
+    response = agent.invoke(
+        {"input": prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, 
+        {"callbacks": [st_callback, ConsoleCallbackHandler()]}
+    )
+    return response["output"]
