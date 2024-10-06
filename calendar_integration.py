@@ -18,23 +18,24 @@ def setup_google_calendar_tools():
     calendar = GoogleCalendar(credentials=credentials)
 
     # Event listing tool
-    class GetEventargs(BaseModel):
+    class GetEventArgs(BaseModel):
         from_datetime: datetime = Field(description="beginning of date range to retrieve events")
         to_datetime: datetime = Field(description="end of date range to retrieve events")
 
     def get_events(from_datetime, to_datetime):
+        # No need to force the current year, just use the provided date range
         events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
         return list(events)
 
     list_event_tool = StructuredTool(
         name="GetEvents",
         func=get_events,
-        args_schema=GetEventargs,
+        args_schema=GetEventArgs,
         description="Useful for getting the list of events from the user's calendar."
     )
 
     # Event adding tool
-    class AddEventargs(BaseModel):
+    class AddEventArgs(BaseModel):
         start_date_time: datetime = Field(description="start date and time of event")
         length_hours: int = Field(description="length of event")
         event_name: str = Field(description="name of the event")
@@ -48,52 +49,43 @@ def setup_google_calendar_tools():
     add_event_tool = StructuredTool(
         name="AddEvent",
         func=add_event,
-        args_schema=AddEventargs,
+        args_schema=AddEventArgs,
         description="Useful for adding an event with a start date, event name, and length in hours."
     )
 
     # Event rescheduling tool
-    class RescheduleEventargs(BaseModel):
+    class RescheduleEventArgs(BaseModel):
         event_id: str = Field(description="ID of the event to be rescheduled")
-        new_start_datetime: datetime = Field(description="New start date and time for the event")
-        new_length_hours: int = Field(description="New length of event in hours")
+        new_start_date_time: datetime = Field(description="new start date and time of the event")
+        new_length_hours: int = Field(description="new length of event")
 
-    def reschedule_event(event_id, new_start_datetime, new_length_hours):
-        event = calendar.get_event(event_id, calendar_id="nikki617@bu.edu")
-        if event:
-            new_end = new_start_datetime + timedelta(hours=new_length_hours)
-            event.start = new_start_datetime
-            event.end = new_end
-            calendar.update_event(event, calendar_id="nikki617@bu.edu")
-            return f"Event '{event.summary}' rescheduled to {new_start_datetime}"
-        return f"Event with ID {event_id} not found."
+    def reschedule_event(event_id, new_start_date_time, new_length_hours):
+        event = calendar.get_event(event_id=event_id)
+        event.start = new_start_date_time
+        event.end = new_start_date_time + timedelta(hours=new_length_hours)
+        return calendar.update_event(event)
 
     reschedule_event_tool = StructuredTool(
         name="RescheduleEvent",
         func=reschedule_event,
-        args_schema=RescheduleEventargs,
-        description="Useful for rescheduling an event with a new start date, time, and length."
+        args_schema=RescheduleEventArgs,
+        description="Useful for rescheduling an event by its ID with a new start time and duration."
     )
 
-    # Event cancelling tool
-    class CancelEventargs(BaseModel):
-        event_id: str = Field(description="ID of the event to cancel")
+    # Event canceling tool
+    class CancelEventArgs(BaseModel):
+        event_id: str = Field(description="ID of the event to be canceled")
 
     def cancel_event(event_id):
-        event = calendar.get_event(event_id, calendar_id="nikki617@bu.edu")
-        if event:
-            calendar.delete_event(event, calendar_id="nikki617@bu.edu")
-            return f"Event '{event.summary}' has been canceled."
-        return f"Event with ID {event_id} not found."
+        event = calendar.get_event(event_id=event_id)
+        return calendar.delete_event(event)
 
     cancel_event_tool = StructuredTool(
         name="CancelEvent",
         func=cancel_event,
-        args_schema=CancelEventargs,
-        description="Useful for canceling an event by providing its event ID."
+        args_schema=CancelEventArgs,
+        description="Useful for canceling an event by its ID."
     )
 
-    # Add all tools to a list
     tools = [list_event_tool, add_event_tool, reschedule_event_tool, cancel_event_tool]
-    
     return tools, calendar
