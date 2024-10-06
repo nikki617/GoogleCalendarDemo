@@ -4,8 +4,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import StructuredTool
 from langchain.callbacks.tracers import ConsoleCallbackHandler
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
-from pydantic import BaseModel, Field
-from datetime import datetime
 import streamlit as st
 
 from calendar_integration import get_events, add_event, cancel_event, GetEventargs, AddEventargs, CancelEventargs
