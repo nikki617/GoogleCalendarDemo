@@ -1,72 +1,62 @@
-# misc imports
-from beautiful_date import Jan, Apr, Sept, Oct
-import json
-import os
-from datetime import date, datetime, timedelta
-from beautiful_date import hours
+# calendar_integration.py
+from gcsa.event import Event
+from gcsa.google_calendar import GoogleCalendar
+from google.oauth2 import service_account
+from pydantic import BaseModel, Field
+from datetime import datetime
+import streamlit as st
 
-# Create the GoogleCalendar.
-calendar = GoogleCalendar(credentials=credentials)
+# Google Calendar Credentials
+def setup_google_calendar_tools():
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["CalendarAPI"],
+        scopes=["https://www.googleapis.com/auth/calendar"]
+    )
 
-#------- 
-### Event listing tool
+    # Create the GoogleCalendar instance
+    calendar = GoogleCalendar(credentials=credentials)
 
-# Parameters needed to look for an event
-class GetEventargs(BaseModel):
-    from_datetime: datetime = Field(description="beginning of date range to retrieve events")
-    to_datetime: datetime = Field(description="end of date range to retrieve events")
+    # Event listing tool
+    class GetEventargs(BaseModel):
+        from_datetime: datetime = Field(description="beginning of date range to retrieve events")
+        to_datetime: datetime = Field(description="end of date range to retrieve events")
 
-# Define the tool 
-def get_events(from_datetime, to_datetime):
-    # Ensure that the current year is used by default
-    current_year = datetime.now().year
-    from_datetime = from_datetime.replace(year=current_year)
-    to_datetime = to_datetime.replace(year=current_year)
-    
-    events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
-    return list(events)
+    def get_events(from_datetime, to_datetime):
+        current_year = datetime.now().year
+        from_datetime = from_datetime.replace(year=current_year)
+        to_datetime = to_datetime.replace(year=current_year)
+        
+        events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
+        return list(events)
 
-# Create a Tool object 
-list_event_tool = StructuredTool(
-    name="GetEvents",
-    func=get_events,
-    args_schema=GetEventargs,
-    description="Useful for getting the list of events from the user's calendar."
-)
+    list_event_tool = StructuredTool(
+        name="GetEvents",
+        func=get_events,
+        args_schema=GetEventargs,
+        description="Useful for getting the list of events from the user's calendar."
+    )
 
-#------------
+    # Event adding tool
+    class AddEventargs(BaseModel):
+        start_date_time: datetime = Field(description="start date and time of event")
+        length_hours: int = Field(description="length of event")
+        event_name: str = Field(description="name of the event")
 
-### Event adding tool
+    def add_event(start_date_time, length_hours, event_name):
+        current_year = datetime.now().year
+        start_date_time = start_date_time.replace(year=current_year)
+        start = start_date_time
+        end = start + length_hours * hours
+        event = Event(event_name, start=start, end=end)
+        return calendar.add_event(event, calendar_id="nikki617@bu.edu")
 
-# Parameters needed to add an event
-class AddEventargs(BaseModel):
-    start_date_time: datetime = Field(description="start date and time of event")
-    length_hours: int = Field(description="length of event")
-    event_name: str = Field(description="name of the event")
+    add_event_tool = StructuredTool(
+        name="AddEvent",
+        func=add_event,
+        args_schema=AddEventargs,
+        description="Useful for adding an event with a start date, event name, and length in hours."
+    )
 
-# Define the tool 
-def add_event(start_date_time, length_hours, event_name):
-    # Ensure the current year is used
-    current_year = datetime.now().year
-    start_date_time = start_date_time.replace(year=current_year)
-    start = start_date_time
-    end = start + length_hours * hours
-    event = Event(event_name,
-                  start=start,
-                  end=end)
-    return calendar.add_event(event, calendar_id="nikki617@bu.edu")
+    tools = [list_event_tool, add_event_tool]
 
-# Create a Tool object 
-add_event_tool = StructuredTool(
-    name="AddEvent",
-    func=add_event,
-    args_schema=AddEventargs,
-    description="Useful for adding an event with a start date, event name, and length in hours."
-)
-
-#------------
-
-## Update this list with the new tools
-tools = [list_event_tool, add_event_tool]
-
-#-----------
+    return tools, calendar
