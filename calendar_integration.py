@@ -1,5 +1,3 @@
-# calendar_integration.py
-
 from gcsa.event import Event
 from gcsa.google_calendar import GoogleCalendar
 from google.oauth2 import service_account
@@ -46,3 +44,23 @@ def add_event(start_date_time, length_hours, event_name):
     end = start + length_hours * hours
     event = Event(event_name, start=start, end=end)
     return calendar.add_event(event, calendar_id="nikki617@bu.edu")
+
+# Parameters needed to cancel an event
+class CancelEventargs(BaseModel):
+    event_name: str = Field(description="name of the event to be canceled")
+    from_datetime: datetime = Field(description="beginning of the date range to search for events to cancel")
+    to_datetime: datetime = Field(description="end of the date range to search for events to cancel")
+
+# Define the function to cancel an event
+def cancel_event(event_name: str, from_datetime: datetime, to_datetime: datetime):
+    # Retrieve events in the given date range
+    events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
+    
+    # Look for the event with the matching name
+    for event in events:
+        if event.summary == event_name:
+            # If found, delete the event
+            calendar.delete_event(event, calendar_id="nikki617@bu.edu")
+            return f"Event '{event_name}' has been canceled."
+    
+    return f"No event named '{event_name}' was found in the given date range."
