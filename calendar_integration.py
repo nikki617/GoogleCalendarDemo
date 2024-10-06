@@ -69,3 +69,26 @@ def cancel_event(event_name: str, from_datetime: datetime, to_datetime: datetime
     
     return f"No event named '{event_name}' was found in the given date range."
 
+# Parameters needed to reschedule an event
+class RescheduleEventargs(BaseModel):
+    event_name: str = Field(description="Name of the event to be rescheduled")
+    new_start_date_time: datetime = Field(description="New start date and time of the event")
+    new_length_hours: int = Field(description="New length of the event in hours")
+
+def reschedule_event(event_name: str, new_start_date_time: datetime, new_length_hours: int):
+    # Retrieve events in the given date range (for the same day)
+    events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=new_start_date_time, time_max=new_start_date_time + timedelta(hours=24))
+    
+    # Look for the event with the matching name
+    for event in events:
+        if event.summary == event_name:
+            # If found, reschedule the event
+            start = new_start_date_time
+            end = start + new_length_hours * hours
+            event.start = start
+            event.end = end
+            
+            calendar.update_event(event, calendar_id="nikki617@bu.edu")
+            return f"Event '{event_name}' has been rescheduled to {start}."
+    
+    return f"No event named '{event_name}' was found to reschedule."
