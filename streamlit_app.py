@@ -5,7 +5,7 @@ from llm_integration import setup_llm
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 from langchain.callbacks.tracers import ConsoleCallbackHandler
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Set up tools and LLM
 tools, calendar = setup_google_calendar_tools()
@@ -33,9 +33,9 @@ with col1:
         # Get a response from the agent
         st_callback = StreamlitCallbackHandler(st.container())
 
-        # Specify the default date range for the current week
-        from_datetime = datetime.now()
-        to_datetime = datetime.now() + timedelta(days=7)
+        # Specify the date range for the entire year of 2024
+        from_datetime = datetime(2024, 1, 1)
+        to_datetime = datetime(2024, 12, 31)
 
         # Invoke the agent
         response = agent_executor.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
@@ -43,7 +43,7 @@ with col1:
         # Display only the AI's response, suppressing the details
         if 'output' in response:
             response_output = response["output"]
-            st.sidebar.chat_message("ai").write(response_output)  # Show only AI response
+            st.sidebar.chat_message("ai").write(response_output)
             msgs.add_ai_message(response_output)
 
 # Right side for calendar
