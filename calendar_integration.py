@@ -55,16 +55,30 @@ def cancel_event(event_name: str, from_datetime: datetime, to_datetime: datetime
     # Retrieve events in the given date range
     events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
     
-    # Debug: Print out the retrieved events for verification
-    print("Retrieved Events:")
-    for event in events:
-        print(f"- {event.summary} at {event.start} to {event.end}")
+    # Normalize the event name for comparison
+    normalized_event_name = event_name.strip().lower()
 
     # Look for the event with the matching name
     for event in events:
-        if event.summary == event_name:
+        if event.summary.strip().lower() == normalized_event_name:  # Normalize for comparison
             # If found, delete the event
             calendar.delete_event(event, calendar_id="nikki617@bu.edu")
             return f"Event '{event_name}' has been canceled."
     
     return f"No event named '{event_name}' was found in the given date range."
+
+# Function to reschedule an event
+def reschedule_event(old_event_name: str, new_start_date_time: datetime, new_length_hours: int):
+    # Get the current date and time
+    current_year = datetime.now().year
+    new_start_date_time = new_start_date_time.replace(year=current_year)
+
+    # Cancel the old event
+    cancellation_response = cancel_event(old_event_name, new_start_date_time, new_start_date_time + timedelta(hours=24))
+    
+    # Check if cancellation was successful before adding the new event
+    if "has been canceled." in cancellation_response:  # Adjust this condition based on your response
+        add_event(new_start_date_time, new_length_hours, old_event_name)
+        return f"The event '{old_event_name}' has been successfully rescheduled."
+    else:
+        return f"Could not cancel the event '{old_event_name}'. Please check if it exists."
