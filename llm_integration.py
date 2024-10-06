@@ -8,16 +8,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import streamlit as st
 
-from calendar_integration import (
-    get_events,
-    add_event,
-    cancel_event,
-    reschedule_event,
-    GetEventargs,
-    AddEventargs,
-    CancelEventargs,
-    RescheduleEventArgs
-)
+from calendar_integration import get_events, add_event, cancel_event, GetEventargs, AddEventargs, CancelEventargs
 
 # Create Tool objects for calendar integration
 list_event_tool = StructuredTool(
@@ -41,17 +32,10 @@ cancel_event_tool = StructuredTool(
     description="Useful for canceling an event with a specific name within a date range."
 )
 
-reschedule_event_tool = StructuredTool(
-    name="RescheduleEvent",
-    func=reschedule_event,
-    args_schema=RescheduleEventArgs,
-    description="Useful for rescheduling an event with a new start date and length."
-)
-
 # LLM setup
 def create_llm_agent():
     llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
-
+    
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", "You are a helpful Google Calendar assistant"),
@@ -60,16 +44,16 @@ def create_llm_agent():
         ]
     )
 
-    tools = [list_event_tool, add_event_tool, cancel_event_tool, reschedule_event_tool]
+    tools = [list_event_tool, add_event_tool, cancel_event_tool]
 
     agent = create_tool_calling_agent(llm, tools, prompt)
     return AgentExecutor(agent=agent, tools=tools)
 
 # Function to invoke the agent and return the response
-def invoke_agent(agent, prompt, from_datetime=None, to_datetime=None):
+def invoke_agent(agent, prompt, from_datetime, to_datetime):
     st_callback = StreamlitCallbackHandler(st.container())
     response = agent.invoke(
-        {"input": prompt, "from_datetime": from_datetime, "to_datetime": to_datetime},
+        {"input": prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, 
         {"callbacks": [st_callback, ConsoleCallbackHandler()]}
     )
     return response["output"]
