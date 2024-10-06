@@ -24,7 +24,7 @@ col1, col2 = st.columns([1, 2])
 with col1:
     st.sidebar.title("Chat")
 
-    if entered_prompt := st.sidebar.text_input("What does my day look like?", placeholder="Ask me about your schedule!"):
+    if entered_prompt := st.sidebar.text_input("What can I assist you with regarding your calendar?", placeholder="Ask me about your schedule!"):
         # Clear the message history for the new prompt
         msgs.clear()
         st.sidebar.chat_message("human").write(entered_prompt)
@@ -45,26 +45,6 @@ with col1:
             response_output = response["output"]
             st.sidebar.chat_message("ai").write(response_output)
             msgs.add_ai_message(response_output)
-
-    # Rescheduling an event
-    st.sidebar.header("Reschedule Event")
-    event_id = st.sidebar.text_input("Event ID to reschedule:")
-    new_start_datetime = st.sidebar.datetime_input("New Start Date and Time", value=datetime.now())
-    new_length_hours = st.sidebar.number_input("New Length (hours)", min_value=1)
-    
-    if st.sidebar.button("Reschedule Event"):
-        if event_id and new_start_datetime:
-            reschedule_response = tools[2].func(event_id=event_id, new_start_date_time=new_start_datetime, new_length_hours=new_length_hours)
-            st.sidebar.success(f"Event '{event_id}' rescheduled successfully.")
-
-    # Canceling an event
-    st.sidebar.header("Cancel Event")
-    cancel_event_id = st.sidebar.text_input("Event ID to cancel:")
-    
-    if st.sidebar.button("Cancel Event"):
-        if cancel_event_id:
-            cancel_response = tools[3].func(event_id=cancel_event_id)
-            st.sidebar.success(f"Event '{cancel_event_id}' canceled successfully.")
 
 # Right side for calendar
 with col2:
