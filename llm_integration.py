@@ -8,7 +8,17 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import streamlit as st
 
-from calendar_integration import get_events, add_event, cancel_event, reschedule_event, GetEventargs, AddEventargs, CancelEventargs, RescheduleEventargs
+from calendar_integration import (
+    get_events,
+    add_event,
+    cancel_event,
+    reschedule_event,
+    GetEventargs,
+    AddEventargs,
+    CancelEventargs,
+    RescheduleEventargs,
+    reschedule_event_tool,  # Add this import
+)
 
 # Create Tool objects for calendar integration
 list_event_tool = StructuredTool(
@@ -44,7 +54,7 @@ def create_llm_agent():
         ]
     )
 
-    tools = [list_event_tool, add_event_tool, cancel_event_tool, reschedule_event_tool]  # Add reschedule_event_tool
+    tools = [list_event_tool, add_event_tool, cancel_event_tool, reschedule_event_tool]  # Ensure reschedule_event_tool is included
 
     agent = create_tool_calling_agent(llm, tools, prompt)
     return AgentExecutor(agent=agent, tools=tools)
