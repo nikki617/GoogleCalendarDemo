@@ -1,5 +1,3 @@
-# streamlit_app.py
-
 import streamlit as st
 from datetime import datetime, timedelta
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
