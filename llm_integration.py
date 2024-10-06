@@ -6,7 +6,7 @@ from langchain.callbacks.tracers import ConsoleCallbackHandler
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 import streamlit as st
 
-from calendar_integration import get_events, add_event, cancel_event, GetEventargs, AddEventargs, CancelEventargs
+from calendar_integration import get_events, add_event, cancel_event, GetEventargs, AddEventargs, CancelEventargs, reschedule_event
 
 # Create Tool objects for calendar integration
 list_event_tool = StructuredTool(
@@ -30,6 +30,13 @@ cancel_event_tool = StructuredTool(
     description="Useful for canceling an event with a specific name within a date range."
 )
 
+reschedule_event_tool = StructuredTool(
+    name="RescheduleEvent",
+    func=reschedule_event,
+    args_schema=AddEventargs,
+    description="Useful for rescheduling an event."
+)
+
 # LLM setup
 def create_llm_agent():
     llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
@@ -42,7 +49,7 @@ def create_llm_agent():
         ]
     )
 
-    tools = [list_event_tool, add_event_tool, cancel_event_tool]
+    tools = [list_event_tool, add_event_tool, cancel_event_tool, reschedule_event_tool]
 
     agent = create_tool_calling_agent(llm, tools, prompt)
     return AgentExecutor(agent=agent, tools=tools)
