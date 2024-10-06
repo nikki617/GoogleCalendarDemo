@@ -51,11 +51,15 @@ class CancelEventargs(BaseModel):
     from_datetime: datetime = Field(description="beginning of the date range to search for events to cancel")
     to_datetime: datetime = Field(description="end of the date range to search for events to cancel")
 
-# Define the function to cancel an event
 def cancel_event(event_name: str, from_datetime: datetime, to_datetime: datetime):
     # Retrieve events in the given date range
     events = calendar.get_events(calendar_id="nikki617@bu.edu", time_min=from_datetime, time_max=to_datetime)
     
+    # Debug: Print out the retrieved events for verification
+    print("Retrieved Events:")
+    for event in events:
+        print(f"- {event.summary} at {event.start} to {event.end}")
+
     # Look for the event with the matching name
     for event in events:
         if event.summary == event_name:
@@ -64,3 +68,4 @@ def cancel_event(event_name: str, from_datetime: datetime, to_datetime: datetime
             return f"Event '{event_name}' has been canceled."
     
     return f"No event named '{event_name}' was found in the given date range."
+
