@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import streamlit as st
 
-from calendar_integration import get_events, add_event, cancel_event, GetEventargs, AddEventargs, CancelEventargs
+from calendar_integration import get_events, add_event, cancel_event, reschedule_event, GetEventargs, AddEventargs, CancelEventargs, RescheduleEventargs
 
 # Create Tool objects for calendar integration
 list_event_tool = StructuredTool(
@@ -32,6 +32,14 @@ cancel_event_tool = StructuredTool(
     description="Useful for canceling an event with a specific name within a date range."
 )
 
+# New tool for rescheduling events
+reschedule_event_tool = StructuredTool(
+    name="RescheduleEvent",
+    func=reschedule_event,
+    args_schema=RescheduleEventargs,
+    description="Useful for rescheduling an event to a new start date and length."
+)
+
 # LLM setup
 def create_llm_agent():
     llm = ChatOpenAI(api_key=st.secrets["openai"]["api_key"], temperature=0.1)
@@ -44,7 +52,7 @@ def create_llm_agent():
         ]
     )
 
-    tools = [list_event_tool, add_event_tool, cancel_event_tool]
+    tools = [list_event_tool, add_event_tool, cancel_event_tool, reschedule_event_tool]
 
     agent = create_tool_calling_agent(llm, tools, prompt)
     return AgentExecutor(agent=agent, tools=tools)
