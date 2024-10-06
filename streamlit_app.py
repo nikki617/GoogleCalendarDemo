@@ -38,38 +38,13 @@ with col1:
         to_datetime = datetime.now() + timedelta(days=7)
 
         # Invoke the agent
-        response = agent_executor.invoke(
-            {"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime},
-            {"callbacks": [st_callback, ConsoleCallbackHandler()]}
-        )
+        response = agent_executor.invoke({"input": entered_prompt, "from_datetime": from_datetime, "to_datetime": to_datetime}, {"callbacks": [st_callback, ConsoleCallbackHandler()]})
 
         # Display only the AI's response, suppressing the details
         if 'output' in response:
             response_output = response["output"]
             st.sidebar.chat_message("ai").write(response_output)  # Show only AI response
             msgs.add_ai_message(response_output)
-
-    # Adding options for rescheduling and canceling
-    st.sidebar.subheader("Manage Events")
-
-    if reschedule_id := st.sidebar.text_input("Reschedule Event ID", placeholder="Event ID"):
-        new_start_time = st.sidebar.text_input("New Start Time (YYYY-MM-DD HH:MM)", placeholder="New start time")
-        new_length_hours = st.sidebar.number_input("New Length (hours)", min_value=1, step=1)
-
-        if st.sidebar.button("Reschedule Event"):
-            # Reschedule the event
-            response = agent_executor.invoke({
-                "input": f"Reschedule event with ID {reschedule_id} to {new_start_time} for {new_length_hours} hours"
-            })
-            st.sidebar.chat_message("ai").write(response.get("output", "Error processing rescheduling"))
-
-    if cancel_id := st.sidebar.text_input("Cancel Event ID", placeholder="Event ID"):
-        if st.sidebar.button("Cancel Event"):
-            # Cancel the event
-            response = agent_executor.invoke({
-                "input": f"Cancel event with ID {cancel_id}"
-            })
-            st.sidebar.chat_message("ai").write(response.get("output", "Error processing cancellation"))
 
 # Right side for calendar
 with col2:
