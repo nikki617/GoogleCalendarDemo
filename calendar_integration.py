@@ -58,5 +58,19 @@ def setup_google_calendar_tools():
         description="Useful for adding an event with a start date, event name, and length in hours."
     )
 
-    tools = [list_event_tool, add_event_tool]
+    class DeleteEventargs(BaseModel):
+    event_id: str = Field(description="ID of the event to delete")
+
+    def delete_event(event_id):
+        calendar.delete_event(event_id, calendar_id="nikki617@bu.edu")
+        return f"Event with ID {event_id} deleted."
+    
+    delete_event_tool = StructuredTool(
+        name="DeleteEvent",
+        func=delete_event,
+        args_schema=DeleteEventargs,
+        description="Useful for deleting an event from the user's calendar using its ID."
+    )
+
+    tools = [list_event_tool, add_event_tool, delete_event_tool]
     return tools, calendar
